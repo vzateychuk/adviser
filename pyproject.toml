@@ -14,7 +14,7 @@ dev = [
 ]
 
 [project.scripts]
-advisor = "cli.main:main"
+advisor = "cli.main:app"
 
 [tool.uv]
 package = true

@@ -1,6 +1,7 @@
-def main() -> None:
-    print("Hello world")
+import typer
 
+app = typer.Typer(add_completion=False, invoke_without_command=True)
 
-if __name__ == "__main__":
-    main()
+@app.callback()
+def main(env: str = typer.Option("dev", "--env")) -> None:
+    print(f"env={env}")

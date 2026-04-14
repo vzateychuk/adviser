@@ -2,10 +2,19 @@
 
 ## Run
 
+Default environment is `dev`:
+
 ```bash
+uv run python -m cli.main
+# or
 uv run advisor
 # or
-uv run python -m cli.main
+advisor
+
+# Run with explicit environment:
+uv run advisor --env prod
+# or
+advisor --env prod
 ```
 
 ## Tests
