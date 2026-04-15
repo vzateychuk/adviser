@@ -10,7 +10,7 @@ models:
     fallback: "mistral-small-4-119b-2603"
 
   code_executor:
-    primary: "qwen2.5-coder-7b-instruct"
+    primary: "mistral-small-4-119b-2603"
     fallback: "mixtral-8x22b-instruct-v0.1"
 
   critic:

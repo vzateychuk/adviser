@@ -32,3 +32,13 @@ advisor --env prod ask "Reply with exactly: pong" --role planner
 ```bash
 uv run pytest -q
 ```
+
+### Examples
+
+Planner (returns JSON plan):
+
+```bash
+advisor --env prod ask "Create a 3-step plan to add filesystem prompts loading to the project. Return JSON only." --role planner
+
+advisor --env prod ask "Write a Python function load_role_prompt(role: str) -> str that loads prompts/<role>.md using pathlib." --role code_executor
+```
