@@ -1,0 +1,18 @@
+version: "1.0"
+
+models:
+  planner:
+    primary: "mistral-small-4-119b-2603"
+    fallback: "llama-3.1-8b-instruct"
+
+  generic_executor:
+    primary: "mistral-small-4-119b-2603"
+    fallback: "llama-3.1-8b-instruct"
+
+  code_executor:
+    primary: "mixtral-8x22b-instruct-v0.1"
+    fallback: "qwen2.5-coder-7b-instruct"
+
+  critic:
+    primary: "mistral-small-4-119b-2603"
+    fallback: "llama-3.1-8b-instruct"
