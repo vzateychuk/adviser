@@ -10,7 +10,10 @@ log = logging.getLogger(__name__)
 _PLACEHOLDER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
 
 
-def load_role_prompt(role: str, prompts_dir: Path = Path("prompts")) -> str:
+_DEFAULT_PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
+
+
+def load_role_prompt(role: str, prompts_dir: Path = _DEFAULT_PROMPTS_DIR) -> str:
     """Load prompt template by convention: prompts/<role>.md"""
     path = prompts_dir / f"{role}.md"
     if not path.exists():

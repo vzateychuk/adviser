@@ -4,8 +4,8 @@ import asyncio
 import logging
 
 import typer
-from openai import APIStatusError
 
+from llm.errors import LLMError
 from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
 from tools.prompts import load_role_prompt, render_template
@@ -33,11 +33,11 @@ def ask(
 
     prompt_template = load_role_prompt(role)
     placeholder_values = {
-        "STEP_TITLE": "",
-        "STEP_INPUT": text,
-        "STEP_OUTPUT": "",
-        "STEP_SUCCESS_CRITERIA": "",
-        "PREVIOUS_RESULTS": "",
+            "STEP_TITLE": "",
+            "STEP_INPUT": text,
+            "STEP_OUTPUT": "",
+            "STEP_SUCCESS_CRITERIA": "",
+            "PREVIOUS_RESULTS": "",
     }
     system_prompt = render_template(prompt_template, placeholder_values)
 
@@ -52,9 +52,8 @@ def ask(
                     ],
                 )
             )
-        except APIStatusError as e:
-            status = getattr(e, "status_code", None)
-            log.error("LLM request failed (status=%s). Model='%s'. Details: %s",status,model_alias,e,)
+        except LLMError as e:
+            log.error("LLM request failed (status=%s). Model='%s'. Details: %s", e.status_code, model_alias, e)
             raise typer.Exit(code=2)
 
         print(resp.text)
