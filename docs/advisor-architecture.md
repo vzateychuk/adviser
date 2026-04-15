@@ -78,34 +78,84 @@ Final Answer
 - `run_id` — уникальный идентификатор run'а
 - `env` — среда выполнения (dev/prod/test)
 - `user_request` — исходный запрос пользователя (неизменный)
-- `plan` — план, сгенерированный planner'ом (заполняется после планирования)
+- `started_at` — timestamp начала run'а
 - `events` — append-only список событий (см. ниже)
-- `retry_counters` — счётчики retry по step_id (для enforcement retry cap)
-- `metadata` — extensibility dict для hooks (ключи — имена hooks, значения — любые данные)
+- `metadata` — extensibility dict для runtime state (ключи — любые, значения — любые данные)
 
-### Модель событий (Events — append-only)
+**Производные данные** (вычисляются из events, не хранятся отдельно):
+- `plan` — reconstructed из `plan_created` events (если есть в flow)
+- `retry_counters` — count `*_retried` events по agent/step
+- `current_step` — последний `step_started` event (если applicable)
+- `tool_calls` — все `tool_call` events в порядке исполнения
 
-Каждое событие имеет тип, timestamp и payload:
-- `plan_created` — plan сгенерирован
-- `step_started` — executor начал работу над step'ом
-- `step_completed` — executor вернул результат
-- `tool_call` / `tool_result` — вызов tool и его результат
-- `critic_verdict` — critic вернул approve/reject
-- `step_rejected` — step отклонён, будет retry
-- `step_retried` — retry step с другим executor/model
-- `run_completed` — финальный ответ
+### Модель событий (Events — append-only, flow-agnostic)
+
+Каждое событие: `{type: str, timestamp: datetime, payload: dict}`
+
+**Универсальные события** (работают для всех flows):
+- `run_started` — инициализация run'а
+- `run_completed` — финальный результат, run завершён
 - `error` — необработанная ошибка
+- `tool_call` — LLM запросил вызов tool'а (agent, tool_name, args)
+- `tool_result` — результат выполнения tool'а (output или error)
+
+**Workflow-специфичные события** (P-E-C flow определяет свои):
+- `plan_created` — planner сгенерировал план
+- `step_started` — executor начал работу над step'ом (step_id, executor_type)
+- `step_completed` — executor вернул результат (step_id, result)
+- `critic_verdict` — critic оценил шаг (step_id, approved: bool, feedback)
+- `step_retried` — retry шага (step_id, reason, retry_count)
+
+**Другие flows определяют свои события:**
+- **ReAct**: `thought_generated`, `action_chosen`, `observation_received`
+- **Hub-and-Spoke**: `agent_delegated`, `agent_response_received`, `aggregation_completed`
+- **Dynamic adaptive**: `goal_decomposed`, `subgoal_updated`, `strategy_changed`
+
+**Преимущества:**
+- Новый flow добавляет свои event-типы без изменения RunContext
+- Events хранятся единообразно в persistence (одна таблица/JSONL)
+- Hooks видят полную историю в одном месте (events), интерпретируют по-своему
+- Retry counting, plan reconstruction и т.д. — запросы к events, не отдельные поля
 
 ### Почему append-only events?
 
-- **Универсальность**: работает для любого flow (линейный / граф / hub-and-spoke) — flow интерпретирует события по-своему
-- **Persistent foundation**: основа для DB-agnostic persistence (каждый event = одна запись)
-- **Recovery**: восстановление run'а при сбое через replay событий
-- **Fail-safe compatibility**: если persistence упал на событии N, события 1..N-1 уже сохранены
+- **Flow-agnostic**: один events-based контейнер работает для Planner-Executor-Critic, ReAct, Hub-and-Spoke, динамических flows. Каждый flow определяет свои event-типы, но storage uniform
+- **Extensibility**: новый flow не требует изменения RunContext или persistence — только добавляет свои event-типы
+- **Derived state, не stored state**: plan, retry_counters, current_step — это queries к events (reconstruction), не отдельные поля. Уменьшает complexity, избегает дублирования
+- **Persistent foundation**: основа для DB-agnostic persistence (каждый event = одна запись в БД)
+- **Recovery & audit**: полная история run'а всегда восстанавливается через replay events; хороший audit trail
+- **Fail-safe**: если persistence упал на событии N, события 1..N-1 уже сохранены
+
+### Как разные flows используют события
+
+Events — универсальный формат, flow интерпретирует их для своих нужд:
+
+**Planner-Executor-Critic flow:**
+```
+plan = ctx.events |> filter(type='plan_created') |> extract(plan)
+current_step = ctx.events |> filter(type='step_started') |> last()
+retry_count(step_id) = ctx.events |> filter(type='step_retried' AND step_id) |> count()
+critic_verdict = ctx.events |> filter(type='critic_verdict') |> last()
+```
+
+**ReAct flow:**
+```
+last_thought = ctx.events |> filter(type='thought_generated') |> last()
+last_action = ctx.events |> filter(type='action_chosen') |> last()
+observations = ctx.events |> filter(type='observation_received') |> list()
+```
+
+**Hub-and-Spoke flow:**
+```
+delegated_agents = ctx.events |> filter(type='agent_delegated') |> extract(agent_name) |> unique()
+responses = ctx.events |> filter(type='agent_response_received') |> list()
+```
+
+Это устраняет жёсткую привязку RunContext к одному workflow'у.
 
 ### Что НЕ хранит
 
-RunContext не содержит raw transcripts LLM (уменьшает размер БД, снижает риски хранения PII). Артефакты хранятся как структурированные поля плана и результатов.
+RunContext не содержит raw transcripts LLM (уменьшает размер БД, снижает риски хранения PII). Артефакты хранятся как структурированные события, не сырой текст.
 
 ---
 
