@@ -3,33 +3,45 @@ from pathlib import Path
 
 import typer
 
-from cfg.loader import load_models
-from db.db import init_db
+from cfg.loader import load_app, load_models
+from db.runtime import Database
+from llm.factory import create_llm
 from tools.logging import setup_logging
+from cli.commands.ask import ask
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
 
-
 @app.callback()
 def main(
+    ctx: typer.Context,
     env: str = typer.Option("dev", "--env"),
-    db_path: Path = typer.Option(Path(".data/db/advisor.sqlite"), "--db-path"),
     config_dir: Path | None = typer.Option(None, "--config-dir"),
 ) -> None:
     setup_logging(env)
     log = logging.getLogger("advisor")
-
     log.info("Starting app (env=%s)", env)
 
     cfg_dir = config_dir or (Path("config") / env)
-    models_cfg = load_models(cfg_dir)
-    log.info("Loaded models.yaml from %s (version=%s)", cfg_dir, models_cfg.version)
-    log.info("planner.primary=%s", models_cfg.models["planner"].primary)
 
-    conn = init_db(db_path)
-    try:
-        conn.execute("INSERT INTO runs(env) VALUES (?)", (env,))
-        conn.commit()
-        log.info("Run stored in DB: %s", db_path)
-    finally:
-        conn.close()
+    log.debug("Read configs from %s", cfg_dir)
+    models_registry = load_models(cfg_dir)
+    app_cfg = load_app(cfg_dir)
+
+    llm_client = create_llm(env=env, app_cfg=app_cfg)
+
+    ctx.obj = {
+        "env": env,
+        "models_registry": models_registry,
+        "app_cfg": app_cfg,
+        "llm": llm_client,
+    }
+
+    log.info("Loaded models.yaml from %s (version=%s)", cfg_dir, models_registry.version)
+
+    with Database(app_cfg.db.path) as db:
+        db.record_run(env)
+        log.info("Run stored in DB: %s", app_cfg.db.path)
+
+
+# register commands once (module import time)
+app.command()(ask)

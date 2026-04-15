@@ -1,298 +1,148 @@
-# Advisor Strategy System — Implementation Plan (Python, vendor-agnostic)
+# План реализации Advisor Strategy System (статус + следующие шаги)
 
-Цель: поэтапно реализовать vendor-agnostic LLM advisor strategy system (planner–executor + optional critic loop) на Python с конфигурацией в YAML, CLI, retry, логированием, кешем и SQLite persistence.  
-Доступ к LLM: через **LiteLLM proxy (OpenAI-compatible Messages API)**. Streaming — позже.
+Формат: этапы → шаги → ожидаемый результат.  
+Цель: двигаться маленькими инкрементами, каждый шаг даёт проверяемый результат (CLI/тесты/артефакты).
 
 ---
 
 ## Этап 0 — Базовая инфраструктура
 
-### Шаг 0.0 — Скелет проекта, запуск, README, Hello world
-**Цель:** проект запускается локально, есть простейшая CLI-команда.
+### Шаг 0.0 — Скелет проекта, запуск, README, Hello world  
+**Статус:** ✅ выполнено  
+**Результат:** проект запускается через `uv run advisor`, есть базовый README.
 
-**Готово, если:**
-- `uv run advisor` запускается и печатает `Hello world` (или другой smoke output)
-- есть минимальный `README.md`
+### Шаг 0.1 — Переключение окружений через `--env` (dev/prod/test)  
+**Статус:** ✅ выполнено  
+**Результат:** приложение стартует с указанной средой выполнения через CLI.
 
-**Артефакты:**
-- `cli/main.py`
-- `pyproject.toml` с `[project.scripts] advisor = "..."`
-- `README.md`
+### Шаг 0.2 — Логирование и подключение к SQLite  
+**Статус:** ✅ выполнено  
+**Результат:** есть базовое логирование (с file:line) и SQLite; при запуске создаётся БД и пишется запись о запуске.
 
----
-
-### Шаг 0.1 — Параметр среды dev/prod при старте приложения
-**Цель:** CLI принимает `--env dev|prod` и приложение знает текущую среду.
-
-**Решение:**
-- Typer `@app.callback()` + `invoke_without_command=True`
-- Вывод `env=...` при старте
-
-**Готово, если:**
-- `uv run advisor` → `env=dev`
-- `uv run advisor --env prod` → `env=prod`
-
-**Артефакты:**
-- обновление `cli/main.py`
-- обновление `README.md` (примеры запуска с `--env`)
+### Шаг 0.3 — Загрузка конфигов по окружению + Pydantic-валидация  
+**Статус:** ✅ выполнено  
+**Результат:** `models.yaml` грузится из `config/<env>/`, валидируется; есть тесты на загрузку и smoke запуск CLI.
 
 ---
 
-### Шаг 0.2 — Логирование и подключение к SQLite
-**Цель:** базовый `logging` + создание/открытие SQLite файла, чтобы дальше писать артефакты.
+## Этап 1 — Базовый LLM слой (vendor-agnostic)
 
-**Рекомендуемые решения (MVP):**
-- стандартный `logging` (консоль)
-- `sqlite3` из stdlib (простота), позже можно перейти на SQLAlchemy
+### Шаг 1.0 — Нейтральные типы сообщений + интерфейс клиента (LLMClient) + Mock  
+**Статус:** ✅ выполнено  
+**Результат:** есть внутренний “контракт” для сообщений и запросов; есть `MockLLMClient` и тест на него.
 
-**Готово, если:**
-- при запуске инициализируется логгер (уровень INFO/DEBUG)
-- создаётся файл БД (если нет) в заданном пути
-- выполняется минимальная миграция (создание таблицы `runs`)
+### Шаг 1.1 — Реальный LLM клиент через LiteLLM proxy (Messages API, без streaming)  
+**Статус:** ⏳ предстоит  
+**Результат:** в dev/prod можно выполнить простой запрос к LLM через LiteLLM proxy и получить текст.
 
-**Артефакты:**
-- `advisor/logging.py` или `core/logging.py`
-- `advisor/.data/sqlite.py` (init_db)
+### Шаг 1.2 — Выбор LLM реализации по env  
+**Статус:** ⏳ предстоит  
+**Результат:** `--env test` → mock; `--env dev/prod` → реальный LiteLLM-адаптер (через единую фабрику/создатель).
 
 ---
 
-### Шаг 0.3 — Загрузка конфигов в зависимости от среды выполнения
-**Цель:** по `--env` выбираются конфиги и/или `.env` файлы, конфигурация валидируется.
+## Этап 2 — Prompts + агентные роли + структурированные артефакты
 
-**Решение:**
-- `config/` директория
-- YAML + Pydantic схемы
-- `.env` файлы: `dev.env`, `prod.env`, `test.env` (опционально)
-- loader с кешем (`lru_cache`) — аккуратно
+### Шаг 2.0 — Prompts для ролей из файловой системы (FS)  
+**Статус:** ⏳ предстоит  
+**Результат:**  
+- есть директория `prompts/`  
+- для ролей (planner/generic_executor/code_executor/critic) есть текстовые prompt-файлы  
+- есть единый механизм загрузки prompt’ов из файлов (по соглашению об именах или через минимальные настройки)  
+- минимум один вызов LLM использует prompt из файла
 
-**Готово, если:**
-- `advisor --env dev` грузит `config/...` и валидирует
-- ошибки конфигов понятны (pydantic validation errors)
+### Шаг 2.1 — Structured “артефакты” (Pydantic модели) для Plan/Step/Critique  
+**Статус:** ⏳ предстоит  
+**Результат:** определены модели данных, которые будут ходить между компонентами (planner/executor/critic) и сохраняться в БД.
 
-**Артефакты:**
-- `config/models.yaml`, `config/agents.yaml`
-- `advisor/config/schema.py`, `advisor/config/loader.py`
-- `advisor/settings.py` (env loading)
+### Шаг 2.2 — Planner (advisor): генерирует план в JSON и валидируется  
+**Статус:** ⏳ предстоит  
+**Результат:** planner возвращает валидный JSON-план; при ошибке валидации — понятная ошибка (позже добавим retry/repair).
 
----
+### Шаг 2.3 — Executors: GenericExecutor и CodeExecutor  
+**Статус:** ⏳ предстоит  
+**Результат:** два типа исполнителей работают по одному интерфейсу, возвращают результат шага.
 
-## Этап 1 — LLM доступ (LiteLLM) + базовые типы сообщений
-
-### Шаг 1.0 — Базовые типы сообщений (Messages API)
-**Цель:** унифицированные типы `Message`, `ChatRequest`, `ChatResponse` (pydantic).
-
-**Готово, если:**
-- типы покрывают роль/контент
-- можно сериализовать в формат OpenAI-compatible messages
-
-**Артефакты:**
-- `advisor/llm/types.py`
+### Шаг 2.4 — Critic (опционально)  
+**Статус:** ⏳ предстоит  
+**Результат:** critic оценивает результат шага и возвращает структурированный verdict (approve/reject + feedback).
 
 ---
 
-### Шаг 1.1 — LLM Client (LiteLLM proxy, без streaming)
-**Цель:** минимальный клиент `LLMClient.chat()` через OpenAI-compatible endpoint.
+## Этап 3 — Orchestrator: planner → steps → executor + critic loop + retry
 
-**Решение:**
-- `openai.AsyncOpenAI(base_url=..., api_key=...)`
-- метод `chat(req)` возвращает `ChatResponse(text, usage?, raw?)`
+### Шаг 3.0 — Orchestrator MVP (без retry)  
+**Статус:** ⏳ предстоит  
+**Результат:** выполнение пользовательской задачи по цепочке planner → steps → executors → final.
 
-**Готово, если:**
-- есть рабочий “ручной” пример запроса
-- ошибки сети обрабатываются и логируются (без retry на этом шаге можно)
+### Шаг 3.1 — Retry политика (tenacity)  
+**Статус:** ⏳ предстоит  
+**Результат:** устойчивость к ошибкам провайдера и к reject от critic.
 
-**Артефакты:**
-- `advisor/llm/protocol.py` (Protocol)
-- `advisor/llm/litellm_client.py`
-
----
-
-### Шаг 1.2 — Минимальные тесты для LLM слоя (без сети)
-**Цель:** тестируем контракт и структуру без реальных HTTP вызовов.
-
-**Решение:**
-- `FakeLLMClient` для тестов
-- smoke tests: типы, сериализация, базовый контракт
-
-**Артефакты:**
-- `tests/test_llm_contract.py`
+### Шаг 3.2 — Политика “critic reject → retry step, не replan”  
+**Статус:** ⏳ предстоит  
+**Результат:** при reject система пытается переисполнить шаг с альтернативным executor/model; replan — только как fallback.
 
 ---
 
-## Этап 2 — Агентный слой (Planner/Executor/Critic)
+## Этап 4 — Роутинг и конфиги для ролей (минимум)
 
-### Шаг 2.0 — Prompt loader (FS)
-**Цель:** каждый агент умеет загрузить prompt из файла.
+### Шаг 4.0 — Router executor’ов по ключевым словам  
+**Статус:** ⏳ предстоит  
+**Результат:** выбор CodeExecutor vs GenericExecutor по простым правилам.
 
-**Решение:**
-- `pathlib.Path.read_text(encoding="utf-8")`
-- кеширование опционально (`lru_cache`)
-
-**Готово, если:**
-- prompt читается
-- ошибки (нет файла) дают понятное исключение
+### Шаг 4.1 — Связка ролей с моделями из `models.yaml` (primary/fallback)  
+**Статус:** ⏳ предстоит  
+**Результат:** planner/executor/critic получают правильные model alias по роли и среде.
 
 ---
 
-### Шаг 2.1 — AgentBase (ABC) + структурированные вход/выход
-**Цель:** единый интерфейс `ainvoke(...)` для агентов.
+## Этап 5 — Persistence: хранение артефактов выполнения (SQLite)
 
-**Решение:**
-- `abc.ABC` + `@abstractmethod`
-- pydantic модели для input/output (особенно для Planner plan)
+### Шаг 5.0 — Сохранение plan/steps/final (без сырого транскрипта)  
+**Статус:** ⏳ предстоит  
+**Результат:** в SQLite сохраняются артефакты: план, результаты шагов, итог, verdict критика (если есть).
 
----
-
-### Шаг 2.2 — PlannerAgent: JSON план (pydantic)
-**Цель:** Planner генерирует план в JSON, валидируем pydantic моделью.
-
-**Решение:**
-- pydantic `Plan`, `PlanStep`
-- парсинг: `json.loads(resp.text)` → `Plan.model_validate(...)`
-- позже добавим repair+retry
+### Шаг 5.1 — Минимальные запросы к истории (просмотр последних запусков)  
+**Статус:** ⏳ предстоит  
+**Результат:** можно посмотреть последние runs и их артефакты (в CLI или отдельной командой позже).
 
 ---
 
-### Шаг 2.3 — Executor агенты: GenericExecutor + CodeExecutor
-**Цель:** выполнение шагов плана.
+## Этап 6 — CLI команды продукта
 
-**Router MVP:** keywords (“code”, “python”, “implement”, “class”, “bug”, “refactor” → CodeExecutor, иначе Generic).
+### Шаг 6.0 — `list-models` (alias’ы из YAML)  
+**Статус:** ⏳ предстоит  
+**Результат:** отображение доступных alias моделей по окружению.
 
----
+### Шаг 6.1 — `ask` (одиночный запуск orchestrator)  
+**Статус:** ⏳ предстоит  
+**Результат:** “один запрос → один run → сохранённые артефакты”.
 
-### Шаг 2.4 — CriticAgent (опционально, но желательно)
-**Цель:** оценка результата шага/финала: approve/revise.
-
-**Выход:** `Critique(approved: bool, feedback: str, severity: ...)`
-
----
-
-## Этап 3 — Orchestrator (planner→steps→executors + critic loop + retry)
-
-### Шаг 3.0 — Orchestrator MVP без retry
-**Цель:** связать planner и executors последовательно, собрать final answer.
+### Шаг 6.2 — `chat` (интерактив)  
+**Статус:** ⏳ предстоит  
+**Результат:** интерактивный режим сессии (streaming добавим позже).
 
 ---
 
-### Шаг 3.1 — Retry стратегия (tenacity)
-**Цель:** ретраи на:
-- сетевые ошибки/429
-- critic reject (политика: retry step другим executor’ом)
+## Этап 7 — Tools (sync) (позже)
 
-**Правило:** если critic недоволен — **не перепланировать сразу**, а сначала retry step с другим executor.
+### Шаг 7.0 — Каноничный формат tools + реестр функций  
+**Статус:** ⏳ предстоит  
+**Результат:** единая схема tools внутри системы.
 
----
-
-### Шаг 3.2 — Fallback политики
-**Цель:** определить поведение при превышении лимитов:
-- fallback на другой executor/model
-- (опционально) реплан после N фейлов
+### Шаг 7.1 — Интеграция tool-calling с LiteLLM proxy  
+**Статус:** ⏳ предстоит  
+**Результат:** LLM может вызывать функции; результаты возвращаются в модель.
 
 ---
 
-## Этап 4 — Factory + конфигурация агентов/моделей (YAML) + env
-
-### Шаг 4.0 — YAML конфиги моделей и агентов
-**Файлы:**
-- `config/models.yaml`: temperature/max_tokens/model name
-- `config/agents.yaml`: role → model_ref + prompt_file
+## Этап 8 — Streaming (позже)
+**Статус:** ⏳ отложено  
+**Результат:** streaming в LLM client + UX в CLI.
 
 ---
 
-### Шаг 4.1 — Factory: создание агентов по env и YAML
-**Цель:** создать агентов из конфигов.
-- dev/test: Mock/Fake агенты или FakeLLMClient
-- prod: LiteLLM client
-
-**Trade-off:** избегать глобальных singletons; лучше явный factory object.
-
----
-
-## Этап 5 — Tools (sync python functions) end-to-end
-
-### Шаг 5.0 — Canonical ToolSpec + registry
-**Цель:** единый формат tools и реестр функций (allowlist).
-
----
-
-### Шаг 5.1 — Tool execution
-**Цель:** выполнить синхронную функцию, вернуть tool result.
-
----
-
-### Шаг 5.2 — Интеграция tool-calling с LiteLLM (Messages API)
-**Цель:** поддержать tool calls через OpenAI-compatible формат (через proxy).
-
----
-
-## Этап 6 — Persistence (SQLite): хранение артефактов
-
-### Шаг 6.0 — Схема БД (MVP)
-Храним только артефакты:
-- run (input, env, timestamps)
-- plan (json)
-- steps (json in/out, executor, attempts)
-- critic (verdict, feedback)
-- final (text/json)
-- usage (если доступно)
-
----
-
-### Шаг 6.1 — Repository слой
-**Цель:** изолировать SQL от orchestrator’а.
-
----
-
-## Этап 7 — CLI команды (ask/chat/list-models)
-
-### Шаг 7.0 — `list-models`
-Читает YAML и печатает доступные модели.
-
-### Шаг 7.1 — `ask`
-Один запуск orchestrator для одного запроса.
-
-### Шаг 7.2 — `chat` (сессия)
-Интерактивный режим (позже можно добавить persistence session).
-
-> Streaming добавить позже отдельным шагом, без поломки API.
-
----
-
-## Этап 8 — Набор тестов
-
-### Шаг 8.0 — Unit tests
-- config validation
-- routing keywords
-- plan parsing + failure cases
-- retry policy logic (critic reject)
-
-### Шаг 8.1 — Integration tests (offline)
-- orchestrator с FakeLLMClient на сценариях approve/reject/retry
-
----
-
-## Этап 9 — Документация
-
-### Шаг 9.0 — README расширенный
-- Quickstart
-- структура конфигов
-- как добавить модель/агента
-- примеры `.env` (dev/prod)
-- troubleshooting
-
----
-
-## Этап 10 — Streaming (позже)
-
-### Шаг 10.0 — Streaming в LLMClient
-Добавить `chat_stream()` (async iterator) + UI в CLI (rich).
-
----
-
-## Критерии “готово для MVP”
-- CLI: `advisor --env dev ask "..."` (или аналог)
-- Planner → Executor pipeline работает
-- Есть retry (tenacity) на шаге (минимум 1 политика)
-- SQLite сохраняет plan/steps/final
-- Конфиги YAML валидируются pydantic
-- Минимальные тесты проходят
+## Этап 9 — Документация и “готово для MVP”
+**Статус:** ⏳ предстоит  
+**Результат:** README с быстрым стартом, описанием env/конфигов, примерами CLI и пояснениями по архитектурным решениям.

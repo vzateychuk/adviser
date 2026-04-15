@@ -1,0 +1,8 @@
+version: "1.0"
+
+llm:
+  provider: "mock"
+  base_url: "mock"
+
+db:
+  path: ".data/db/advisor.sqlite"

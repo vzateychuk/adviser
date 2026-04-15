@@ -2,26 +2,55 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 from typing import Literal
+from pathlib import Path
 
 
 AgentRole = Literal["planner", "generic_executor", "code_executor", "critic"]
 
 
 class RoleModelChoice(BaseModel):
+    """Model alias selection for a specific role (primary + optional fallback)."""
+
     primary: str
     fallback: str | None = None
 
-class ModelsConfig(BaseModel):
-    """
-    Environment-specific model routing configuration.
 
-    This config does NOT define LiteLLM provider params. It only maps each agent role(planner/executors/critic) to a model alias that must exist in the LiteLLM proxy config.
-
-    Example:
-        models:
-          planner:
-            primary: "mistral-small-4-119b-2603"
-            fallback: "llama-3.1-8b-instruct"
+class ModelsRegistry(BaseModel):
     """
+    Environment-specific model registry.
+
+    This file maps each internal role to a model alias (as configured in LiteLLM),
+    without duplicating provider parameters (api_base/api_key/model_list).
+    """
+
     version: str = "1.0"
     models: dict[AgentRole, RoleModelChoice]
+
+LLMProvider = Literal["openai", "anthropic", "mock"]
+
+class LLMConfig(BaseModel):
+    """
+    LLM runtime configuration for the current environment.
+
+    provider:
+      - openai: OpenAI-compatible API (e.g. LiteLLM proxy)
+      - anthropic: Claude SDK/API (future)
+      - mock: deterministic fake client for tests
+    """
+    provider: LLMProvider
+    base_url: str | None = None
+
+class DBConfig(BaseModel):
+    """SQLite database configuration."""
+    path: Path
+
+class AppConfig(BaseModel):
+    """
+    Application-level configuration (per environment).
+
+    Currently contains only LLM connection settings.
+    """
+
+    version: str = "1.0"
+    llm: LLMConfig
+    db: DBConfig
