@@ -54,3 +54,4 @@ class AppConfig(BaseModel):
     version: str = "1.0"
     llm: LLMConfig
     db: DBConfig
+    prompts_dir: Path = Path("prompts")

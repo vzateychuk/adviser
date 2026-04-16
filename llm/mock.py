@@ -1,20 +1,35 @@
 from __future__ import annotations
 
+import json
+
 from llm.types import ChatRequest, ChatResponse
 
 
 class MockLLMClient:
-    """
-    Deterministic fake LLM client for tests.
-
-    Used in env=test to avoid network calls and make tests predictable.
-    It returns a simple response based on the last user message.
-    """
-
     async def chat(self, req: ChatRequest) -> ChatResponse:
-        last_user_input = ""
+        role = (req.meta or {}).get("role")
+
+        if role == "planner":
+            payload = {
+                "goal": "Mock plan",
+                "assumptions": [],
+                "steps": [
+                    {
+                        "id": 1,
+                        "title": "Mock step",
+                        "type": "generic",
+                        "input": "mock input",
+                        "output": "mock output",
+                        "success_criteria": ["mock criterion"],
+                    }
+                ],
+            }
+            return ChatResponse(text=json.dumps(payload))
+
+        last_user = ""
         for m in reversed(req.messages):
             if m.role == "user":
-                last_user_input = m.content
+                last_user = m.content
                 break
-        return ChatResponse(text=f"[MOCK] {last_user_input}")
+
+        return ChatResponse(text=f"[MOCK] {last_user}")

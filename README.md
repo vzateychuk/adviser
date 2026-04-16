@@ -35,10 +35,21 @@ uv run pytest -q
 
 ### Examples
 
-Planner (returns JSON plan):
+#### Ask
 
 ```bash
 advisor --env prod ask "Create a 3-step plan to add filesystem prompts loading to the project. Return JSON only." --role planner
 
+#  Ask dev planner
 advisor --env prod ask "Write a Python function load_role_prompt(role: str) -> str that loads prompts/<role>.md using pathlib." --role code_executor
 ```
+
+#### Plan
+
+Planner (returns JSON plan):
+
+`plan` calls the Planner and expects a valid JSON plan (validated by Pydantic).  
+It is **not** a chat command. Inputs like "hello" may fail validation.
+
+```bash
+advisor --env prod plan "Create a 3-step plan to implement X. Return JSON only."

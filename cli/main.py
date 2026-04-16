@@ -8,6 +8,7 @@ from db.runtime import Database
 from llm.factory import create_llm
 from tools.logging import setup_logging
 from cli.commands.ask import ask
+from cli.commands.plan import plan
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
 
@@ -33,7 +34,8 @@ def main(
         "env": env,
         "models_registry": models_registry,
         "app_cfg": app_cfg,
-        "llm": llm_client,
+        "prompts_dir": app_cfg.prompts_dir,
+        "llm": llm_client,        
     }
 
     log.info("Loaded models.yaml from %s (version=%s)", cfg_dir, models_registry.version)
@@ -45,3 +47,4 @@ def main(
 
 # register commands once (module import time)
 app.command()(ask)
+app.command()(plan)
