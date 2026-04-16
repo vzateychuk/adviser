@@ -44,28 +44,70 @@
 ## Этап 2 — Prompts + агентные роли + структурированные артефакты
 
 ### Шаг 2.0 — Prompts для ролей из файловой системы (FS)  
-**Статус:** ⏳ предстоит  
+**Статус:** ✅ выполнено  
 **Результат:**  
-- есть директория `prompts/`  
-- для ролей (planner/generic_executor/code_executor/critic) есть текстовые prompt-файлы  
-- есть единый механизм загрузки prompt’ов из файлов (по соглашению об именах или через минимальные настройки)  
-- минимум один вызов LLM использует prompt из файла
+- директория `prompts/` существует  
+- для ролей (clarifier/planner/generic_executor/code_executor/critic) есть текстовые prompt-файлы  
+- единый механизм загрузки: `load_role_prompt(role)` + `render_template(template, values)` в `tools/prompts.py`  
+- путь к `prompts/` резолвится относительно пакета, не зависит от CWD
 
-### Шаг 2.1 — Structured “артефакты” (Pydantic модели) для Plan/Step/Critique  
-**Статус:** ⏳ предстоит  
-**Результат:** определены модели данных, которые будут ходить между компонентами (planner/executor/critic) и сохраняться в БД.
+### Шаг 2.1 — Structured артефакты (Pydantic модели) для Plan/Step/Critique  
+**Статус:** ✅ выполнено  
+**Результат:** `flows/pec/models.py` содержит `PlanResult`, `PlanStep`, `StepResult`, `CriticResult`, `CriticIssue`; инварианты защищены model_validator'ами.
 
-### Шаг 2.2 — Planner (advisor): генерирует план в JSON и валидируется  
-**Статус:** ⏳ предстоит  
-**Результат:** planner возвращает валидный JSON-план; при ошибке валидации — понятная ошибка (позже добавим retry/repair).
+### Шаг 2.2 — Planner: генерирует план в JSON, валидируется  
+**Статус:** ✅ выполнено  
+**Результат:** planner возвращает валидный `PlanResult`; prompt загружается из `prompts/planner.md`.
 
 ### Шаг 2.3 — Executors: GenericExecutor и CodeExecutor  
-**Статус:** ⏳ предстоит  
-**Результат:** два типа исполнителей работают по одному интерфейсу, возвращают результат шага.
+**Статус:** ✅ выполнено  
+**Результат:** два executor'а работают по одному интерфейсу, принимают `PlanStep`, возвращают `StepResult`.
 
 ### Шаг 2.4 — Critic (опционально)  
 **Статус:** ⏳ предстоит  
-**Результат:** critic оценивает результат шага и возвращает структурированный verdict (approve/reject + feedback).
+**Результат:**  
+- critic принимает `PlanStep + StepResult`, возвращает `CriticResult`
+- инвариант: `approved=False → issues непустой` (закреплён в model_validator)
+- Проверка: тест approve-сценария и reject-сценария с MockLLMClient
+
+---
+
+## Этап 2.6 — Clarification Chat (уточняющий диалог перед планированием)
+
+Отдельный этап: `clarifier` — самостоятельная роль со своей моделью и prompt'ом. Запускается до Planner'а, результат передаётся в него как контекст.
+
+### Шаг 2.6.0 — ClarificationState: Pydantic модель  
+**Статус:** ⏳ предстоит  
+**Результат:**  
+- `ClarificationState` в `flows/pec/models.py`: summary (str), key_facts (list[str]), open_questions (list[str]), is_ready (bool), turn_count (int), max_turns (int)
+- инвариант: `is_ready=True` при непустом `open_questions` не допускается (model_validator)
+- Проверка: unit-тесты на валидные и невалидные данные
+
+### Шаг 2.6.1 — Prompt clarifier'а + роль в models.yaml  
+**Статус:** ⏳ предстоит  
+**Результат:**  
+- `prompts/clarifier.md`: роль clarifier, JSON-схема вывода `{summary, key_facts, open_questions, is_ready}`
+- `clarifier` добавлен как отдельная роль в `models.yaml` (primary/fallback model alias, независимо от planner)
+- Проверка: `load_role_prompt(“clarifier”)` + `render_template` заполняет `{{USER_REQUEST}}` и `{{KEY_FACTS}}`
+
+### Шаг 2.6.2 — ClarificationChat: реализация loop'а  
+**Статус:** ⏳ предстоит  
+**Результат:**  
+- `ClarificationChat` принимает `user_request` и `LLMClient`, возвращает `ClarificationState`
+- цикл: вызов clarifier LLM → если `is_ready=false` → задать вопросы пользователю → получить ответ → обновить `key_facts` → повторить
+- защита: при `turn_count >= max_turns` принудительно `is_ready=true`
+- не хранит raw диалог — только `key_facts` и `summary` (anti “lost in the middle”)
+- Проверка: три unit-теста с MockLLMClient:
+  - сценарий A: `is_ready=true` сразу — нет вопросов
+  - сценарий B: 1 раунд → `is_ready=true`
+  - сценарий C: `turn_count >= max_turns` → принудительный выход, loop не зависает
+
+### Шаг 2.6.3 — Интеграция ClarificationChat → Planner  
+**Статус:** ⏳ предстоит  
+**Результат:**  
+- prompt `prompts/planner.md` расширен placeholder'ами `{{SUMMARY}}` и `{{KEY_FACTS}}`
+- Planner получает `ClarificationState` и формирует системный промпт через `render_template`
+- Проверка: end-to-end с MockLLMClient — clarification → plan; `PlanResult` содержит шаги
 
 ---
 
