@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "title": "Summarize architecture decision",
+  "type": "generic",
+  "input": "Summarize why we keep LLM adapters vendor-agnostic and use role-based prompts from filesystem.",
+  "output": "Short summary in 5-7 bullet points",
+  "success_criteria": ["5-7 bullets", "Mentions adapter layer", "Mentions prompts from FS"]
+}
