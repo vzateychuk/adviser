@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from cli.commands.review_step import review_step
 
 import typer
 
@@ -50,3 +51,4 @@ def main(
 app.command()(ask)
 app.command()(plan)
 app.command("exec-step")(exec_step)
+app.command("review-step")(review_step)

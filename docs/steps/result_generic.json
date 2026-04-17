@@ -1,0 +1,6 @@
+{
+  "step_id": 1,
+  "executor": "generic_executor",
+  "content": "- We isolate vendor SDKs behind LLM adapters to keep core logic provider-agnostic.\n- This makes it easy to switch providers (LiteLLM/OpenAI-compatible, Anthropic) without refactoring orchestration.\n- Role-based prompts live in filesystem and are configured via app.yaml, enabling rapid iteration without code changes.\n- Structured artifacts (Plan/Step/Result/Critic) are validated with Pydantic for reliability and easier persistence.\n- Keeping prompts separate improves maintainability and supports environment-specific behavior.\n",
+  "assumptions": []
+}

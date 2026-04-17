@@ -26,6 +26,14 @@ class MockLLMClient:
             }
             return ChatResponse(text=json.dumps(payload))
 
+        if role == "critic":
+            payload = {
+                "approved": True,
+                "issues": [],
+                "summary": "Mock approved",
+            }
+            return ChatResponse(text=json.dumps(payload))
+
         last_user = ""
         for m in reversed(req.messages):
             if m.role == "user":

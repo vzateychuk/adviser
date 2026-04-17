@@ -1,0 +1,6 @@
+{
+  "step_id": 2,
+  "executor": "code_executor",
+  "content": "def add(a, b):\n    return a + b\n",
+  "assumptions": []
+}

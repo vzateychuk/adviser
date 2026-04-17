@@ -28,3 +28,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["cli"]
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"

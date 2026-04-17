@@ -2,7 +2,11 @@
   "id": 1,
   "title": "Summarize architecture decision",
   "type": "generic",
-  "input": "Summarize why we keep LLM adapters vendor-agnostic and use role-based prompts from filesystem.",
+  "input": "Summarize why we keep LLM adapters vendor-agnostic and use role-based prompts loaded from filesystem. Provide 5-7 bullet points.",
   "output": "Short summary in 5-7 bullet points",
-  "success_criteria": ["5-7 bullets", "Mentions adapter layer", "Mentions prompts from FS"]
+  "success_criteria": [
+    "5-7 bullet points",
+    "Mentions adapter layer / vendor-agnostic design",
+    "Mentions prompts loaded from filesystem"
+  ]
 }

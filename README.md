@@ -65,10 +65,21 @@ advisor --env prod exec-step "$(cat docs/steps/step_generic.json)"
 advisor --env prod exec-step "$(cat docs/steps/step_code.json)"
 ```
 
-#### Critic (temporary)
+### Review step
 
-Temporary manual input until a dedicated review command / critic loop is implemented:
+Review a single executed step using the Critic.
+
+```bash
+# Critic review Code step
+advisor --env prod review-step "$(cat docs/steps/step_code.json)" "$(cat docs/steps/result_code.json)"
+
+# Critic review generic step
+advisor --env prod review-step "$(cat docs/steps/step_generic.json)" "$(cat docs/steps/result_generic.json)"
+```
+
+**Critic Ask (just for fun)**
+
+Manual critic prompt invocation via `ask` (not the primary review workflow; prefer `review-step`):
 
 ```bash
 advisor --env prod ask --role critic "STEP: Implement summarize_previous_results helper. STEP_RESULT: It truncates to 200 chars and loses structure. SUCCESS_CRITERIA: Must include first 20 lines and keep readability. Return JSON verdict."
-```
