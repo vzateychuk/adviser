@@ -68,7 +68,7 @@ def ask(
                         Message(role="system", content=system_prompt),
                         Message(role="user", content=text),
                     ],
-                    meta={"role": role},
+                    # meta={"role": role},
                 )
             )
         except LLMError as e:

@@ -1,43 +1,44 @@
 from __future__ import annotations
 
-import json
+from typing import Callable, Optional
 
 from llm.types import ChatRequest, ChatResponse
 
 
+MockScenario = Callable[[ChatRequest], ChatResponse]
+
+
 class MockLLMClient:
-    async def chat(self, req: ChatRequest) -> ChatResponse:
-        role = (req.meta or {}).get("role")
+  """
+  Pre-Orchestrator mock LLM client.
 
-        if role == "planner":
-            payload = {
-                "goal": "Mock plan",
-                "assumptions": [],
-                "steps": [
-                    {
-                        "id": 1,
-                        "title": "Mock step",
-                        "type": "generic",
-                        "input": "mock input",
-                        "output": "mock output",
-                        "success_criteria": ["mock criterion"],
-                    }
-                ],
-            }
-            return ChatResponse(text=json.dumps(payload))
+  Contract:
+  - No routing
+  - No role inference
+  - No meta usage
+  - Executes exactly one injected behavior
+  """
 
-        if role == "critic":
-            payload = {
-                "approved": True,
-                "issues": [],
-                "summary": "Mock approved",
-            }
-            return ChatResponse(text=json.dumps(payload))
+  def __init__(
+      self,
+      *,
+      planner: Optional[MockScenario] = None,
+      critic: Optional[MockScenario] = None,
+      default: Optional[MockScenario] = None,
+  ):
+    self._planner = planner
+    self._critic = critic
+    self._default = default
 
-        last_user = ""
-        for m in reversed(req.messages):
-            if m.role == "user":
-                last_user = m.content
-                break
+  async def chat(self, req: ChatRequest) -> ChatResponse:
+    """
+    IMPORTANT:
+    This layer does NOT decide behavior.
 
-        return ChatResponse(text=f"[MOCK] {last_user}")
+    In pre-Orchestrator stage, the caller MUST NOT rely on this method.
+    """
+
+    raise RuntimeError(
+      "MockLLMClient.chat() is disabled in pre-Orchestrator design. "
+      "Use role-specific factory clients instead."
+    )

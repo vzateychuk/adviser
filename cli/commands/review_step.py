@@ -92,7 +92,7 @@ def review_step(ctx: typer.Context, step_json: str, result_json: str) -> None:
                         Message(role="system", content=system_prompt),
                         Message(role="user", content="Review the step result against success criteria. Return JSON only."),
                     ],
-                    meta={"role": "critic"},
+                    # meta={"role": "critic"},
                 )
             )
         except LLMError as e:

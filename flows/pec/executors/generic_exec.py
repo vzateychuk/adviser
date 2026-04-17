@@ -64,7 +64,7 @@ class GenericExecutor:
                     Message(role="system", content=system_prompt),
                     Message(role="user", content=step.input),
                 ],
-                meta={"role": "generic_executor"},
+                # meta={"role": "generic_executor"},
             )
         )
 

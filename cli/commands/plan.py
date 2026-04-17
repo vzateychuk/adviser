@@ -66,7 +66,7 @@ def plan(
                         Message(role="system", content=system_prompt),
                         Message(role="user", content=text),
                     ],
-                    meta={"role": "planner"},
+                    # meta={"role": "planner"},
                 )
             )
         except LLMError as e:

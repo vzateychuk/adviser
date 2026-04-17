@@ -1,23 +1,65 @@
 from __future__ import annotations
 
 from cfg.schema import AppConfig
-from llm.mock import MockLLMClient
 from llm.openai_client import OpenAICompatibleClient
 from llm.protocol import LLMClient
+from llm.mock_scenarios import (
+  planner_mock,
+  critic_mock,
+  default_mock,
+)
 
 
+# -------------------------
+# Test-specific clients
+# -------------------------
+def create_test_planner_llm() -> LLMClient:
+  """
+  Used ONLY for CLI: plan
+  """
+  return _PlannerMockClient(planner_mock)
+
+
+def create_test_critic_llm() -> LLMClient:
+  """
+  Used ONLY for CLI: review-step
+  """
+  return _CriticMockClient(critic_mock)
+
+
+# -------------------------
+# Production factory
+# -------------------------
 def create_llm(*, env: str, app_cfg: AppConfig) -> LLMClient:
-    """
-    Creates an LLM client based on app.yaml provider selection.
+  cfg = app_cfg.llm
 
-    Note: env=test can still force mock, but provider is the primary switch.
-    """
-    if env == "test" or app_cfg.llm.provider == "mock":
-        return MockLLMClient()
+  if env == "test" or cfg.provider == "mock":
+    # default safe fallback (not used for role routing)
+    return _PlannerMockClient(planner_mock)
 
-    if app_cfg.llm.provider == "openai":
-        if not app_cfg.llm.base_url:
-            raise ValueError("app.yaml: llm.base_url is required for provider=openai")
-        return OpenAICompatibleClient(base_url=app_cfg.llm.base_url)
+  if cfg.provider == "openai":
+    if not cfg.base_url:
+      raise ValueError("app.yaml: llm.base_url is required for provider=openai")
 
-    raise ValueError(f"Unsupported llm.provider: {app_cfg.llm.provider}")
+    return OpenAICompatibleClient(base_url=cfg.base_url)
+
+  raise ValueError(f"Unsupported llm.provider: {cfg.provider}")
+
+
+# -------------------------
+# Internal minimal clients
+# -------------------------
+class _PlannerMockClient:
+  def __init__(self, fn):
+    self._fn = fn
+
+  async def chat(self, req):
+    return self._fn(req)
+
+
+class _CriticMockClient:
+  def __init__(self, fn):
+    self._fn = fn
+
+  async def chat(self, req):
+    return self._fn(req)

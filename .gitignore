@@ -10,6 +10,7 @@
 # App
 *.env
 .data/
+repo_map.md
 
 # Python
 __pycache__/

@@ -66,7 +66,7 @@ class CodeExecutor:
                     Message(role="system", content=system_prompt),
                     Message(role="user", content=step.input),
                 ],
-                meta={"role": "code_executor"},
+                # meta={"role": "code_executor"},
             )
         )
 
