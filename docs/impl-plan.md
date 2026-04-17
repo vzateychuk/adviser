@@ -63,119 +63,184 @@
 **Статус:** ✅ выполнено  
 **Результат:** два executor'а работают по одному интерфейсу, принимают `PlanStep`, возвращают `StepResult`.
 
-### Шаг 2.4 — Critic (опционально)  
-**Статус:** ⏳ предстоит  
-**Результат:**  
+## Этап 2.4 — Critic (опционально)
+
+**Статус:** ✅ выполнено
+
+### Результат
 - critic принимает `PlanStep + StepResult`, возвращает `CriticResult`
-- инвариант: `approved=False → issues непустой` (закреплён в model_validator)
-- Проверка: тест approve-сценария и reject-сценария с MockLLMClient
+- инвариант: `approved=False → issues непустой`
+- тесты: approve/reject сценарии с MockLLMClient
 
 ---
 
-## Этап 2.6 — Clarification Chat (уточняющий диалог перед планированием)
+# Этап 3 — Execution Kernel (Orchestrator-first)
 
-Отдельный этап: `clarifier` — самостоятельная роль со своей моделью и prompt'ом. Запускается до Planner'а, результат передаётся в него как контекст.
+## Цель
+Сформировать минимальный runtime-контур:
+Planner → Orchestrator → Executor → Result
 
-### Шаг 2.6.0 — ClarificationState: Pydantic модель  
-**Статус:** ⏳ предстоит  
-**Результат:**  
-- `ClarificationState` в `flows/pec/models.py`: summary (str), key_facts (list[str]), open_questions (list[str]), is_ready (bool), turn_count (int), max_turns (int)
-- инвариант: `is_ready=True` при непустом `open_questions` не допускается (model_validator)
-- Проверка: unit-тесты на валидные и невалидные данные
-
-### Шаг 2.6.1 — Prompt clarifier'а + роль в models.yaml  
-**Статус:** ⏳ предстоит  
-**Результат:**  
-- `prompts/clarifier.md`: роль clarifier, JSON-схема вывода `{summary, key_facts, open_questions, is_ready}`
-- `clarifier` добавлен как отдельная роль в `models.yaml` (primary/fallback model alias, независимо от planner)
-- Проверка: `load_role_prompt(“clarifier”)` + `render_template` заполняет `{{USER_REQUEST}}` и `{{KEY_FACTS}}`
-
-### Шаг 2.6.2 — ClarificationChat: реализация loop'а  
-**Статус:** ⏳ предстоит  
-**Результат:**  
-- `ClarificationChat` принимает `user_request` и `LLMClient`, возвращает `ClarificationState`
-- цикл: вызов clarifier LLM → если `is_ready=false` → задать вопросы пользователю → получить ответ → обновить `key_facts` → повторить
-- защита: при `turn_count >= max_turns` принудительно `is_ready=true`
-- не хранит raw диалог — только `key_facts` и `summary` (anti “lost in the middle”)
-- Проверка: три unit-теста с MockLLMClient:
-  - сценарий A: `is_ready=true` сразу — нет вопросов
-  - сценарий B: 1 раунд → `is_ready=true`
-  - сценарий C: `turn_count >= max_turns` → принудительный выход, loop не зависает
-
-### Шаг 2.6.3 — Интеграция ClarificationChat → Planner  
-**Статус:** ⏳ предстоит  
-**Результат:**  
-- prompt `prompts/planner.md` расширен placeholder'ами `{{SUMMARY}}` и `{{KEY_FACTS}}`
-- Planner получает `ClarificationState` и формирует системный промпт через `render_template`
-- Проверка: end-to-end с MockLLMClient — clarification → plan; `PlanResult` содержит шаги
+Без hooks, retry, persistence и сложных state систем.
 
 ---
 
-## Этап 2.5 — RunContext + Hook framework
+## 3.0 — Orchestrator MVP (execution kernel)
 
-### Шаг 2.5.0 — Определить RunContext
-**Статус:** ⏳ предстоит  
-**Результат:** Pydantic-модель RunContext с полями run_id, env, user_request, plan, events (list), retry_counters (dict), metadata (dict). Events — типизированный union с discriminated field type. Нет persistence, только in-memory. Тест: создать RunContext, добавить события, прочитать.
+**Статус:** ⏳ предстоит
 
-### Шаг 2.5.1 — Определить hook interface и точки расширения
-**Статус:** ⏳ предстоит  
-**Результат:** Protocol для Hook. Список именованных точек: before_plan, after_plan, before_step, after_step, on_critic_verdict, on_step_reject, on_run_complete, on_error. Хранилище hooks: dict[str, list[Callable]] в классе HookRunner.
+### Функциональность
+- принимает `user_request`
+- вызывает Planner
+- получает `PlanResult`
+- последовательно выполняет шаги
+- вызывает Executor (Generic / Code)
+- возвращает итоговый результат
 
-### Шаг 2.5.2 — HookRunner (fail-safe)
-**Статус:** ⏳ предстоит  
-**Результат:** HookRunner.run(hook_name, ctx, **kwargs) — вызывает все зарегистрированные callable'ы для данного hook_name, ошибку в hook'е логирует и продолжает. Тест: hook, бросающий исключение, не прерывает вызов следующего hook'а.
+### Ограничения
+- нет hooks
+- нет retry
+- нет persistence
+- нет RunContext как сложной модели
+- нет event system
 
-### Шаг 2.5.3 — Smoke-test hook (например, EventLogger)
-**Статус:** ⏳ предстоит  
-**Результат:** один рабочий hook который подписывается на все точки и пишет structured-лог. Доказательство: hook видит все события при mock-run'е.
-
----
-
-## Этап 3 — Orchestrator: planner → steps → executor + critic loop + retry
-
-### Шаг 3.0 — Orchestrator MVP (голый, без hooks, без retry)
-**Статус:** ⏳ предстоит  
-**Результат:** Orchestrator получает RunContext, вызывает Planner (MockLLM), итерирует steps плана, вызывает один Executor (MockLLM), собирает results. Без критика, без retry. Проверка: end-to-end с MockLLM — plan выполняется, финальный ответ возвращается.
-
-### Шаг 3.1 — Интеграция RunContext + HookRunner в Orchestrator
-**Статус:** ⏳ предстоит  
-**Результат:** Orchestrator вызывает HookRunner в каждой точке pipeline (before_plan, after_plan, before_step, after_step, on_run_complete и т.д.). Нет новой функциональности — только wiring. EventLogger hook подтверждает что все точки вызываются в правильном порядке.
-
-### Шаг 3.2 — Error taxonomy в adapter layer
-**Статус:** ⏳ предстоит  
-**Результат:** LiteLLMAdapter преобразует исключения SDK в типизированные: TransportError, AuthError, ValidationError, ExecutorError. Тест: mock разных HTTP-ошибок → правильные типы исключений.
-
-### Шаг 3.3 — Retry через tenacity для TransportError и ValidationError
-**Статус:** ⏳ предстоит  
-**Результат:** Orchestrator обёрнут tenacity для TransportError (exponential backoff). ValidationError от planner/critic → repair-попытка с уточняющим промптом (1 раз). AuthError → fail fast без retry. Тест: mock TransportError → retry; mock AuthError → стоп.
-
-### Шаг 3.4 — Critic + CriticRejectError retry через Router
-**Статус:** ⏳ предстоит  
-**Результат:** Orchestrator включает Critic. При reject — не tenacity-retry, а вызов Router с hint “не этот executor” → Router возвращает альтернативу. Глобальный retry cap (configurable, default: 2 retry на step, N на run). При исчерпании → run завершается с status=failed. Тест: mock critic always-reject → cap срабатывает, run не зависает.
+### Результат
+user_request → plan → execution → result
 
 ---
 
-## Этап 3.5 — Persistence (DB-agnostic)
+## 3.1 — RunContext (минимальная версия)
 
-### Шаг 3.5.0 — Определить RunStore interface
-**Статус:** ⏳ предстоит  
-**Результат:** Protocol/ABC с методами: save_run_metadata, append_event, get_run, list_runs. Никакой реализации. Тест: mypy/pyright проверяет что будущие реализации соответствуют.
+**Статус:** ⏳ предстоит
 
-### Шаг 3.5.1 — InMemoryRunStore
-**Статус:** ⏳ предстоит  
-**Результат:** реализация RunStore на dict'ах, без I/O. Используется в тестах. Тест: save → append events → get_run → данные соответствуют.
+### Назначение
+Минимальный контейнер состояния выполнения.
 
-### Шаг 3.5.2 — SQLiteRunStore
-**Статус:** ⏳ предстоит  
-**Результат:** реализация RunStore на SQLite, переиспользует init из Step 0.2. Схема: таблица runs (metadata) + таблица run_events (append-only, FK на runs). Тест: запись run через SQLiteRunStore, чтение — данные совпадают.
+### Поля
+- run_id
+- user_request
+- plan
+- step_results
+- status
 
-### Шаг 3.5.3 — Подключение RunStore через hooks
-**Статус:** ⏳ предстоит  
-**Результат:** PersistenceHook подписывается на after_step и on_run_complete, вызывает RunStore. Orchestrator не вызывает RunStore напрямую. Тест: integration — mock-run с SQLiteRunStore через PersistenceHook → данные в БД.
+### Ограничения
+- без events
+- без retry counters
+- без metadata graph
 
-### Шаг 3.5.4 — Config для выбора backend
-**Статус:** ⏳ предстоит  
-**Результат:** в models.yaml поле persistence.type: sqlite | in-memory. Pydantic-валидация. test env → InMemoryRunStore автоматически.
+---
+
+## 3.2 — Clarification Chat (preprocessing)
+
+**Статус:** ⏳ предстоит
+
+### Назначение
+Уточняющий слой перед планированием.
+
+### Важное место в pipeline
+INPUT → CLARIFIER → ORCHESTRATOR → PLANNER
+
+### 3.2.1 — ClarificationState
+- summary: str
+- key_facts: list[str]
+- open_questions: list[str]
+- is_ready: bool
+- turn_count: int
+- max_turns: int
+
+Инвариант:
+- is_ready=True несовместим с open_questions
+
+### 3.2.2 — Prompt + роль
+- prompts/clarifier.md
+- добавлен в models.yaml
+- placeholders: USER_REQUEST, KEY_FACTS
+
+### 3.2.3 — ClarificationChat (v0)
+- ограниченный LLM цикл
+- обновление key_facts
+- max_turns защита
+
+### 3.2.4 — Интеграция с Planner
+Planner получает summary + key_facts
+
+---
+
+## 3.3 — Critic integration (light mode)
+
+**Статус:** ⏳ предстоит
+
+### Функциональность
+- critic вызывается после step
+- возвращает CriticResult
+- не влияет на retry
+
+---
+
+## 3.4 — Hooks (наблюдаемость)
+
+**Статус:** ⏳ предстоит
+
+### Hooks
+- before_step
+- after_step
+- after_run
+
+### Ограничения
+- только наблюдение
+- не влияет на execution flow
+
+---
+
+## 3.5 — Retry policy
+
+**Статус:** ⏳ предстоит
+
+### Политики
+- retry TransportError
+- exponential backoff
+- fail-fast AuthError
+
+### Ограничения
+- вводится только после стабилизации Orchestrator
+
+---
+
+## 3.6 — Persistence (DB-agnostic)
+
+**Статус:** ⏳ предстоит
+
+### 3.6.1 — RunStore interface
+- save_run_metadata
+- append_event
+- get_run
+- list_runs
+
+### 3.6.2 — InMemoryRunStore
+- реализация на dict
+
+### 3.6.3 — SQLiteRunStore
+- runs + run_events
+
+### 3.6.4 — Integration via hooks
+- PersistenceHook
+- Orchestrator не зависит от storage
+
+### 3.6.5 — Config selection
+- sqlite | in-memory
+
+---
+
+# Итоговая последовательность
+
+1. 3.0 Orchestrator MVP
+2. 3.1 RunContext
+3. 3.2 Clarification Chat
+4. 3.3 Critic integration
+5. 3.4 Hooks
+6. 3.5 Retry policy
+7. 3.6 Persistence
+
+# Далее пока не исправлялось, будет пересмотрено по итогам этапа 3.
 
 ---
 
