@@ -90,6 +90,6 @@ def plan(
             log.error("Planner JSON failed PlanResult validation: %s", e)
             raise typer.Exit(code=2) from e
 
-        print(f"Plan OK, steps={len(plan_obj.steps)}")
+        typer.echo(f"Plan OK, steps={len(plan_obj.steps)}")
 
     asyncio.run(_run())

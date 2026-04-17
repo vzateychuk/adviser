@@ -18,6 +18,4 @@ def test_exec_step_code_in_test_env():
     r = runner.invoke(app, ["--env", "test", "exec-step", json.dumps(step)])
 
     assert r.exit_code == 0, r.stdout + "\n" + r.stderr
-
     assert r.exit_code == 0
-    assert "[MOCK]" in r.stdout

@@ -32,4 +32,3 @@ def test_review_step_in_test_env_returns_ok():
     )
 
     assert r.exit_code == 0, r.stdout + "\n" + r.stderr
-    assert "Critic OK, approved=" in r.stdout

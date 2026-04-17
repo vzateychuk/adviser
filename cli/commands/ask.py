@@ -75,6 +75,6 @@ def ask(
             log.error("LLM request failed. Model='%s'. Details: %s", model_alias, e)
             raise typer.Exit(code=2) from e
 
-        print(resp.text)
+        typer.echo(resp.text)
 
     asyncio.run(_run())

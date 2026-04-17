@@ -46,6 +46,6 @@ def exec_step(ctx: typer.Context, step_json: str) -> None:
             log.debug("Selected GenericExecutor model=%s", model_alias)
 
         res = await ex.execute(step, previous_results=previous)
-        print(res.content)
+        typer.echo(res.content)
 
     asyncio.run(_run())

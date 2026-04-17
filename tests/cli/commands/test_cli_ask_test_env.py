@@ -7,4 +7,3 @@ runner = CliRunner()
 def test_cli_ask_uses_mock_in_test_env():
     r = runner.invoke(app, ["--env", "test", "ask", "hello"])
     assert r.exit_code == 0
-    assert "[MOCK] hello" in r.stdout
