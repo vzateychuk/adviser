@@ -8,7 +8,7 @@ import typer
 
 from flows.pec.executors.code_exec import CodeExecutor
 from flows.pec.executors.generic_exec import GenericExecutor
-from flows.pec.models import PlanStep, StepResult
+from flows.pec.models import PlanStep, StepResult, StepType
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def exec_step(ctx: typer.Context, step_json: str) -> None:
     async def _run() -> None:
         previous: list[StepResult] = []
 
-        if step.type == "code":
+        if step.type == StepType.CODE:
             model_alias = models_registry.models["code_executor"].primary
             ex = CodeExecutor(llm, model_alias=model_alias, prompts_dir=prompts_dir)
             log.debug("Selected CodeExecutor model=%s", model_alias)

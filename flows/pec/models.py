@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from pydantic import BaseModel, Field, model_validator
 from typing import Literal
 
 
-StepType = Literal["generic", "code"]
+class StepType(StrEnum):
+    GENERIC = "generic"
+    CODE = "code"
 
 
 class PlanStep(BaseModel):
