@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flows.pec.models import PlanResult, PlanStep, CriticResult
+from orchestrator.models import PlanResult, PlanStep, CriticResult
 
 
 def test_plan_validates_and_serializes():

@@ -8,7 +8,7 @@ import typer
 
 from flows.pec.executors.code_exec import CodeExecutor
 from flows.pec.executors.generic_exec import GenericExecutor
-from flows.pec.models import PlanStep, StepResult, StepType
+from orchestrator.models import PlanStep, StepResult, StepType
 
 log = logging.getLogger(__name__)
 

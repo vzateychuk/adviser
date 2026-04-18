@@ -1,5 +1,5 @@
-from flows.pec.executors.utils import summarize_previous_results
-from flows.pec.models import StepResult
+from orchestrator.executors.utils import summarize_previous_results
+from orchestrator.models import StepResult
 
 
 def test_summarize_previous_results_limits_lines():

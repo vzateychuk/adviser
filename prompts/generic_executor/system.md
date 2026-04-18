@@ -12,16 +12,3 @@ Output
 Return a concise result for the step.
 If you make assumptions, list them under "Assumptions:" before the result.
 If previous step results are provided, use them as context — do not repeat them.
-
----
-
-<step>
-  <title>{{STEP_TITLE}}</title>
-  <input>{{STEP_INPUT}}</input>
-  <expected_output>{{STEP_OUTPUT}}</expected_output>
-  <success_criteria>{{STEP_SUCCESS_CRITERIA}}</success_criteria>
-</step>
-
-<previous_results>
-{{PREVIOUS_RESULTS}}
-</previous_results>

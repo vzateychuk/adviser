@@ -7,11 +7,11 @@ import re
 
 import typer
 
-from flows.pec.models import CriticResult, PlanStep, StepResult
+from orchestrator.models import CriticResult, PlanStep, StepResult
 from llm.errors import LLMError
 from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
-from tools.prompts import load_role_prompt, render_template
+from tools.prompt import load_role_prompts, render_template
 
 log = logging.getLogger(__name__)
 
@@ -73,9 +73,9 @@ def review_step(ctx: typer.Context, step_json: str, result_json: str) -> None:
         f"expected_output: {step.output}\n"
     )
 
-    template = load_role_prompt("critic", prompts_dir=prompts_dir)
-    system_prompt = render_template(
-        template,
+    system_prompt, user_template = load_role_prompts("critic", prompts_dir=prompts_dir)
+    user_content = render_template(
+        user_template,
         {
             "STEP": step_text,
             "STEP_RESULT": result.content,
@@ -90,7 +90,7 @@ def review_step(ctx: typer.Context, step_json: str, result_json: str) -> None:
                     model=model_alias,
                     messages=[
                         Message(role="system", content=system_prompt),
-                        Message(role="user", content="Review the step result against success criteria. Return JSON only."),
+                        Message(role="user", content=user_content),
                     ],
                     # meta={"role": "critic"},
                 )

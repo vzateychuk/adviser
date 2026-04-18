@@ -57,9 +57,12 @@ Example output
   ]
 }
 ```
-
 ---
-
-<user_request>
-{{USER_REQUEST}}
-</user_request>
+CRITICAL JSON RULES
+- You MUST produce strictly valid JSON.
+- All strings must use double quotes only.
+- Do NOT use single quotes anywhere in output values.
+- Escape all quotes inside strings using \"
+- Do not include unescaped line breaks.
+- Do not include any markdown or code fences.
+- Validate mentally before responding: JSON must parse with standard parser.
