@@ -106,11 +106,17 @@ class CriticResult(BaseModel):
             raise ValueError("issues must not be empty when approved is False")
         return self
 
+# Создание enum для status
+class RunStatus(StrEnum):
+  SUCCESS = "SUCCESS"
+  FAIL = "FAIL"
+
 
 @dataclass
 class RunContext:
   user_request: str
-  retry_count: int = 0
-  max_retries: int = 3
-  critic_feedback: CriticResult | None = None
+  plan: PlanResult | None = None
   step_results: list[StepResult] = field(default_factory=list)
+  critic_feedback: CriticResult | None = None
+  max_retries: int = 3
+  status: RunStatus | None = None
