@@ -5,11 +5,12 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, model_validator
 from typing import Literal
 
+from dataclasses import dataclass, field
+
 
 class StepType(StrEnum):
     GENERIC = "generic"
     CODE = "code"
-
 
 class PlanStep(BaseModel):
     """
@@ -63,7 +64,7 @@ class StepResult(BaseModel):
     Later this can be extended with more structure (e.g., files, patches, tool calls, etc.).
     """
 
-    step_id: int = Field(ge=1)
+    id: int = Field(ge=1)
     executor: str = Field(min_length=1)
     content: str = Field(min_length=1)
     assumptions: list[str] = Field(default_factory=list)
@@ -100,7 +101,16 @@ class CriticResult(BaseModel):
     summary: str = Field(min_length=1)
 
     @model_validator(mode="after")
-    def check_issues_on_reject(self) -> "CriticResult":
+    def check_issues_on_reject(self) -> CriticResult:
         if not self.approved and not self.issues:
             raise ValueError("issues must not be empty when approved is False")
         return self
+
+
+@dataclass
+class RunContext:
+  user_request: str
+  retry_count: int = 0
+  max_retries: int = 3
+  critic_feedback: CriticResult | None = None
+  step_results: list[StepResult] = field(default_factory=list)

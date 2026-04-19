@@ -39,6 +39,6 @@ def plan(
         raise typer.Exit(code=2)
 
     for r in results:
-        log.info("Step %s: %s", r.step_id, r.content)
+        log.info("Step %s: %s", r.id, r.content)
 
     raise typer.Exit(code=0)

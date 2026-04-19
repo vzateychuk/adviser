@@ -5,3 +5,5 @@ llm:
 db:
   path: ".data/db/advisor.sqlite"
 prompts_dir: "prompts"
+
+max_retries: 3

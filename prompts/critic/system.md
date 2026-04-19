@@ -35,3 +35,8 @@ Output schema
   "summary": "string — one sentence explaining the rejection"
 }
 ```
+
+Re-planning
+- If <critic_feedback> is present, this is a retry. The previous plan was rejected.
+- Adjust the plan to directly address each issue's `suggestion`.
+- Do not repeat steps that were approved.

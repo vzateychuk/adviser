@@ -1,10 +1,10 @@
-from orchestrator.executors.utils import summarize_previous_results
 from orchestrator.models import StepResult
+from orchestrator.prompting.renderer import summarize_previous_results
 
 
 def test_summarize_previous_results_limits_lines():
     content = "\n".join([f"line{i}" for i in range(50)])
-    prev = [StepResult(step_id=1, executor="generic_executor", content=content, assumptions=[])]
+    prev = [StepResult(id=1, executor="generic_executor", content=content, assumptions=[])]
     out = summarize_previous_results(prev, max_lines=20)
     
     assert "line0" in out

@@ -48,7 +48,7 @@ class GenericExecutor(BaseExecutor):
     log.debug("Executor got response (len=%d)", len(resp.text))
 
     return StepResult(
-      step_id=step.id,
+      id=step.id,
       executor="generic",
       content=resp.text,
       assumptions=[],

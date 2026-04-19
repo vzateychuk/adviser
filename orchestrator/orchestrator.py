@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from orchestrator.models import PlanResult, PlanStep, StepResult
+from orchestrator.critic import Critic
+from orchestrator.models import PlanResult, PlanStep, StepResult, RunContext
 
 from orchestrator.planner import Planner
 from orchestrator.prompting.renderer import summarize_previous_results
@@ -33,18 +34,18 @@ class Orchestrator:
         planner: Planner,
         executors: Dict[str, BaseExecutor],
         router: ExecutorRouter,
+        critic: Critic,
+        max_retries: int = 3,
     ):
         self._planner = planner
         self._executors = executors
         self._router = router
+        self._critic = critic
+        self._max_retries = max_retries
 
     async def run(self, user_request: str) -> List[StepResult]:
-        """
+      """
         Full execution pipeline:
-
-        1. Plan
-        2. Execute steps sequentially
-        3. Return step results
 
         Args:
             user_request: raw user input
@@ -53,28 +54,31 @@ class Orchestrator:
             List[StepResult]
         """
 
-        # -------------------------
+      ctx = RunContext(user_request=user_request, max_retries=self._max_retries)
+      while ctx.retry_count <= ctx.max_retries:
+
         # 1. Planning
-        # -------------------------
-        plan: PlanResult = await self._planner.plan(user_request)
+        plan: PlanResult = await self._planner.plan(user_request, ctx.critic_feedback, attempt=ctx.retry_count)
+        ctx.step_results = []
+        rejected = False
 
-        # Defensive: ensure steps exist
-        if not plan.steps:
-            return []
-
-        results: List[StepResult] = []
-
-        # -------------------------
         # 2. Execution loop
-        # -------------------------
         for step in plan.steps:
-            result = await self._execute_step(step, previous_results=results)
-            results.append(result)
+            result = await self._execute_step(step, previous_results=ctx.step_results)
+            ctx.step_results.append(result)
 
-        # -------------------------
-        # 3. Return results
-        # -------------------------
-        return results
+            # 3. Review each step result with Critic
+            critic_result = await self._critic.review(step, result)
+            if not critic_result.approved:
+              ctx.critic_feedback = critic_result
+              ctx.retry_count += 1
+              rejected = True
+              break
+
+        if not rejected:
+          return ctx.step_results  # all steps approved
+
+      return ctx.step_results  # max retries exhausted
 
     async def _execute_step(self, step: PlanStep, previous_results: List[StepResult]) -> StepResult:
         """

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orchestrator.models import PlanStep, StepResult
+from orchestrator.models import PlanStep, StepResult, CriticResult
 from tools.prompt import render_template
 from typing import Sequence
 
@@ -37,8 +37,32 @@ def summarize_previous_results(previous_results: Sequence[StepResult], *, max_li
     snippet = "\n".join(lines[:max_lines]).strip()
 
     parts.append(
-      f"[step_id={r.step_id} executor={r.executor}]\n"
+      f"[step_id={r.id} executor={r.executor}]\n"
       f"OUTPUT:\n{snippet}"
     )
 
   return "\n\n".join(parts).strip()
+
+def render_critic_feedback(feedback: CriticResult | None, *, attempt: int = 0) -> str:
+  """
+  Render CriticResult as an XML block for injection into Planner's user prompt.
+
+  Returns empty string on first run (no feedback yet).
+  """
+  if feedback is None:
+    return ""
+
+  issues_xml = "\n".join(
+    f'    <issue severity="{issue.severity}">\n'
+    f"      <description>{issue.description}</description>\n"
+    f"      <suggestion>{issue.suggestion}</suggestion>\n"
+    f"    </issue>"
+    for issue in feedback.issues
+  )
+
+  return (
+    f'\n<critic_feedback attempt="{attempt}">\n'
+    f"  <summary>{feedback.summary}</summary>\n"
+    f"  <issues>\n{issues_xml}\n  </issues>\n"
+    f"</critic_feedback>"
+  )

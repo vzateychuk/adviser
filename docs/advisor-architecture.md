@@ -59,6 +59,7 @@ User Input
 ↓
 Clarification Loop (задаёт уточняющие вопросы пока is_ready=false)
 ↓ ClarificationState (summary + key_facts)
+  ↓
 Planner (Advisor LLM) -> возвращает структурированный Plan (JSON)
 ↓
 Для каждого шага плана:
@@ -69,7 +70,7 @@ Planner (Advisor LLM) -> возвращает структурированный
   (Опционально) Critic проверяет -> возвращает CriticResult
   ↓
   если reject:
-    retry шага с альтернативным executor/model (без перепланирования)
+    retry шага с альтернативным executor/model (через перепланирование)
 ↓
 Final Answer
 ```

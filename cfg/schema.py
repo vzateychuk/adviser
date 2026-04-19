@@ -55,3 +55,11 @@ class AppConfig(BaseModel):
     llm: LLMConfig
     db: DBConfig
     prompts_dir: Path = Path("prompts")
+
+
+class OrchestratorConfig(BaseModel):
+    """
+    Top-level Orchestrator configuration.
+    """
+
+    max_retries: int = 3

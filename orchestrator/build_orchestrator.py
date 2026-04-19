@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from llm.protocol import LLMClient
 from cfg.schema import AppConfig, ModelsRegistry
+from orchestrator.critic import Critic
 from tools.prompt import load_role_prompts
 
 from orchestrator.orchestrator import Orchestrator
@@ -17,71 +18,75 @@ def build_orchestrator(
     app_cfg: AppConfig,
     models_registry: ModelsRegistry,
 ) -> Orchestrator:
-    """
-    Composition root for Orchestrator v0.
+  """
+  Composition root for Orchestrator v0.
 
-    Resolves:
-    - model aliases
-    - prompts
-    - executor wiring
+  Resolves:
+  - model aliases
+  - prompts
+  - executor wiring
 
-    Returns fully constructed orchestrator with no external dependencies.
-    """
+  Returns fully constructed orchestrator with no external dependencies.
+  """
 
-    # -------------------------
-    # Resolve models (roles → concrete model names)
-    # -------------------------
-    planner_model = models_registry.models["planner"].primary
-    generic_model = models_registry.models["generic_executor"].primary
-    code_model = models_registry.models["code_executor"].primary
+  # Resolve models (roles → concrete model names)
+  planner_model = models_registry.models["planner"].primary
+  generic_model = models_registry.models["generic_executor"].primary
+  code_model = models_registry.models["code_executor"].primary
+  critic_model = models_registry.models["critic"].primary
 
-    planner_system_prompt, _ = load_role_prompts("planner", prompts_dir=app_cfg.prompts_dir)
-    generic_system_prompt, generic_user_template = load_role_prompts(
-        "generic_executor",
-        prompts_dir=app_cfg.prompts_dir,
-    )
-    code_system_prompt, code_user_template = load_role_prompts(
-        "code_executor",
-        prompts_dir=app_cfg.prompts_dir,
-    )
+  planner_system_prompt, planner_user_template = load_role_prompts("planner",
+                                                                   prompts_dir=app_cfg.prompts_dir)
+  generic_system_prompt, generic_user_template = load_role_prompts(
+    "generic_executor",
+    prompts_dir=app_cfg.prompts_dir,
+  )
+  code_system_prompt, code_user_template = load_role_prompts(
+    "code_executor",
+    prompts_dir=app_cfg.prompts_dir,
+  )
+  critic_system_prompt, critic_user_template = load_role_prompts("critic",
+                                                                 prompts_dir=app_cfg.prompts_dir)
 
-    # -------------------------
-    # Planner
-    # -------------------------
-    planner = Planner(
-        llm=llm,
-        model=planner_model,
-        prompt=planner_system_prompt,
-    )
+  # Planner
+  planner = Planner(
+    llm=llm,
+    model=planner_model,
+    system_prompt=planner_system_prompt,
+    user_template=planner_user_template,
+  )
 
-    # -------------------------
-    # Executors
-    # -------------------------
-    executors = {
-        "generic": GenericExecutor(
-            llm=llm,
-            model_name=generic_model,
-            system_prompt=generic_system_prompt,
-            user_template=generic_user_template,
-        ),
-        "code": CodeExecutor(
-            llm=llm,
-            model_name=code_model,
-            system_prompt=code_system_prompt,
-            user_template=code_user_template,
-        ),
-    }
+  # Executors
+  executors = {
+    "generic": GenericExecutor(
+      llm=llm,
+      model_name=generic_model,
+      system_prompt=generic_system_prompt,
+      user_template=generic_user_template,
+    ),
+    "code": CodeExecutor(
+      llm=llm,
+      model_name=code_model,
+      system_prompt=code_system_prompt,
+      user_template=code_user_template,
+    ),
+  }
 
-    # -------------------------
-    # Router
-    # -------------------------
-    router = ExecutorRouter()
+  # Critic
+  critic = Critic(
+    llm=llm,
+    model=critic_model,
+    system_prompt=critic_system_prompt,
+    user_template=critic_user_template,
+  )
 
-    # -------------------------
-    # Orchestrator
-    # -------------------------
-    return Orchestrator(
-        planner=planner,
-        executors=executors,
-        router=router,
-    )
+  # Router
+  router = ExecutorRouter()
+
+  # Orchestrator
+  return Orchestrator(
+    planner=planner,
+    executors=executors,
+    router=router,
+    critic=critic,
+  )

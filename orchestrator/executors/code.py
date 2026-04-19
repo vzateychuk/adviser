@@ -49,7 +49,7 @@ class CodeExecutor(BaseExecutor):
     log.debug("CodeExecutor got response (len=%d)", len(resp.text))
 
     return StepResult(
-      step_id=step.id,
+      id=step.id,
       executor="code",
       content=resp.text,
       assumptions=[],

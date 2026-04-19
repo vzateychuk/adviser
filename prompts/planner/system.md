@@ -57,6 +57,12 @@ Example output
   ]
 }
 ```
+Re-planning
+- If <critic_feedback> is present in the user message, this is a retry — the previous plan was rejected.
+- Read each issue's `suggestion` and adjust the plan to directly address it.
+- Do not repeat steps that caused the rejection without changes.
+- The attempt number is shown in the <critic_feedback attempt="N"> attribute.
+
 ---
 CRITICAL JSON RULES
 - You MUST produce strictly valid JSON.
