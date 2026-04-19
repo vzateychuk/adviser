@@ -89,4 +89,5 @@ def build_orchestrator(
     executors=executors,
     router=router,
     critic=critic,
+    max_retries=app_cfg.orchestrator.max_retries,
   )

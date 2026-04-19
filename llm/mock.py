@@ -9,36 +9,31 @@ MockScenario = Callable[[ChatRequest], ChatResponse]
 
 
 class MockLLMClient:
-  """
-  Pre-Orchestrator mock LLM client.
-
-  Contract:
-  - No routing
-  - No role inference
-  - No meta usage
-  - Executes exactly one injected behavior
-  """
-
   def __init__(
       self,
       *,
-      planner: Optional[MockScenario] = None,
-      critic: Optional[MockScenario] = None,
-      default: Optional[MockScenario] = None,
+      planner: MockScenario | None = None,
+      critic: MockScenario | None = None,
+      executor: MockScenario | None = None,   # добавить
+      default: MockScenario | None = None,
   ):
     self._planner = planner
     self._critic = critic
+    self._executor = executor
     self._default = default
 
   async def chat(self, req: ChatRequest) -> ChatResponse:
-    """
-    IMPORTANT:
-    This layer does NOT decide behavior.
+    scenario = self._resolve_scenario(req)
+    if scenario is None:
+      raise RuntimeError(f"No matching scenario for request. Set a default mock.")
+    return scenario(req)
 
-    In pre-Orchestrator stage, the caller MUST NOT rely on this method.
-    """
-
-    raise RuntimeError(
-      "MockLLMClient.chat() is disabled in pre-Orchestrator design. "
-      "Use role-specific factory clients instead."
+  def _resolve_scenario(self, req: ChatRequest) -> MockScenario | None:
+    system = next(
+      (m.content for m in req.messages if m.role == "system"), ""
     )
+    if "Role: Planner" in system:
+      return self._planner or self._default
+    if "Role: Critic" in system:
+      return self._critic or self._default
+    return self._executor or self._default

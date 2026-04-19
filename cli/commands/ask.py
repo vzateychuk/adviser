@@ -4,40 +4,30 @@ import asyncio
 import logging
 import typer
 
-from llm.types import ChatRequest, Message
+from orchestrator.build_orchestrator import build_orchestrator
 
 
 def ask(
     ctx: typer.Context,
     user_request: str,
 ) -> None:
-    """
-    CLI command: ask
+  """Run user request through the full Planner → Executor → Critic pipeline."""
 
-    Purpose:
-    - Direct LLM call without orchestration layer
-    - Used for debugging prompts and model behavior
-    """
+  log = logging.getLogger("advisor.ask")
 
-    log = logging.getLogger("advisor.ask")
+  orchestrator = build_orchestrator(
+    llm=ctx.obj["llm"],
+    app_cfg=ctx.obj["app_cfg"],
+    models_registry=ctx.obj["models_registry"],
+  )
 
-    llm = ctx.obj["llm"]
+  try:
+    result = asyncio.run(orchestrator.run(user_request))
+  except Exception as e:
+    log.exception("Orchestrator failed: %s", e)
+    raise typer.Exit(code=2)
 
-    try:
-        response = asyncio.run(
-            llm.chat(
-                ChatRequest(
-                    model="default",
-                    messages=[
-                        Message(role="user", content=user_request),
-                    ],
-                )
-            )
-        )
-    except Exception as e:
-        log.exception("LLM call failed: %s", e)
-        raise typer.Exit(code=2)
+  for step in result.step_results:
+    typer.echo(step.content)
 
-    log.info("Response: %s", response.text)
-
-    raise typer.Exit(code=0)
+  raise log.info("Result: `%s`", result)

@@ -10,7 +10,6 @@ from llm.factory import create_llm
 from tools.logging import setup_logging
 from cli.commands.ask import ask
 from cli.commands.plan import plan
-from cli.commands.exec_step import exec_step
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
 
@@ -50,5 +49,4 @@ def main(
 # register commands once (module import time)
 app.command()(ask)
 app.command()(plan)
-app.command("exec-step")(exec_step)
 app.command("review-step")(review_step)

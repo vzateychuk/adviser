@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
 from pathlib import Path
 
@@ -44,6 +44,13 @@ class DBConfig(BaseModel):
     """SQLite database configuration."""
     path: Path
 
+class OrchestratorConfig(BaseModel):
+    """
+    Top-level Orchestrator configuration.
+    """
+
+    max_retries: int = 3
+
 class AppConfig(BaseModel):
     """
     Application-level configuration (per environment).
@@ -55,11 +62,4 @@ class AppConfig(BaseModel):
     llm: LLMConfig
     db: DBConfig
     prompts_dir: Path = Path("prompts")
-
-
-class OrchestratorConfig(BaseModel):
-    """
-    Top-level Orchestrator configuration.
-    """
-
-    max_retries: int = 3
+    orchestrator: OrchestratorConfig = Field(default_factory=OrchestratorConfig)

@@ -36,7 +36,7 @@ class Orchestrator:
       executors: Dict[str, BaseExecutor],
       router: ExecutorRouter,
       critic: Critic,
-      max_retries: int = 3,
+      max_retries: int,
   ):
     self._planner = planner
     self._executors = executors
