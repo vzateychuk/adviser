@@ -44,7 +44,7 @@ class Orchestrator:
     self._critic = critic
     self._max_retries = max_retries
 
-  async def run(self, user_request: str) -> List[StepResult]:
+  async def run(self, user_request: str) -> RunContext:
     """
       Full execution pipeline:
 
@@ -57,19 +57,26 @@ class Orchestrator:
 
     ctx = RunContext(user_request=user_request, max_retries=self._max_retries)
 
+    log.info("Start execute request: `%s`", user_request)
+
     # 1. Planning
     plan: PlanResult = await self._planner.plan(user_request,
                                                 ctx.critic_feedback,
                                                 attempt=1)
     ctx.plan = plan
 
+    log.debug("Plan: `%s`", ctx.plan)
+
     # 2. Execution loop
     for step in plan.steps:
-      step_retry_count = 1
+      step_retry_count = 0
       ctx.status = RunStatus.FAIL
 
       # For each cycle we retry until step_result == SUCCESS
-      while step_retry_count <= ctx.max_retries:
+      while step_retry_count < ctx.max_retries:
+        step_retry_count = step_retry_count + 1
+
+        log.debug("Step: `%d`, plan: `%s`", step_retry_count, ctx.plan)
 
         step_result = await self._execute_step(step, previous_results=ctx.step_results)
         ctx.step_results.append(step_result)
@@ -81,9 +88,11 @@ class Orchestrator:
         # Breaking repeating step if the critic approved step
         if critic_result.approved:
           ctx.status = RunStatus.SUCCESS
+          log.debug("Step: `%d`, `%s`", step_retry_count, RunStatus.SUCCESS)
           break
 
-    return ctx.step_results
+    log.info("Finish execute request: `%s` with status: `%s`", user_request, ctx.status)
+    return ctx
 
   async def _execute_step(self, step: PlanStep,
       previous_results: List[StepResult]) -> StepResult:

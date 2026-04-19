@@ -19,7 +19,8 @@ async def main():
 
   result = await orchestrator.run("Make a plan to write Python code that prints 'Hello, world!'. Plan in minimum 3 steps, and execute the plan.")
 
-  print(result)
+  print(result.status)
+  print(result.step_results)
 
 
 asyncio.run(main())
