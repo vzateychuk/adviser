@@ -119,4 +119,5 @@ class RunContext:
   step_results: list[StepResult] = field(default_factory=list)
   critic_feedback: CriticResult | None = None
   max_retries: int = 3
+  retry_count: int = 0
   status: RunStatus | None = None

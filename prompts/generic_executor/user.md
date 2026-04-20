@@ -8,3 +8,5 @@
 <previous_results>
 {{PREVIOUS_RESULTS}}
 </previous_results>
+
+{{CRITIC_FEEDBACK_BLOCK}}

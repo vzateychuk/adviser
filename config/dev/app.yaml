@@ -1,9 +1,13 @@
 version: "1.0"
+
 llm:
   provider: "openai"
   base_url: "http://localhost:4000"
+
 db:
   path: ".data/db/advisor.sqlite"
+
 prompts_dir: "prompts"
 
-max_retries: 3
+orchestrator:
+  max_retries: 3

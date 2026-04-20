@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from cli.commands.review_step import review_step
 
 import typer
 
@@ -10,8 +9,12 @@ from llm.factory import create_llm
 from tools.logging import setup_logging
 from cli.commands.ask import ask
 from cli.commands.plan import plan
+from cli.commands.flow import flow
+from cli.commands.critic import critic
+from cli.commands.exec import exec_step
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
+
 
 @app.callback()
 def main(
@@ -36,7 +39,7 @@ def main(
         "models_registry": models_registry,
         "app_cfg": app_cfg,
         "prompts_dir": app_cfg.prompts_dir,
-        "llm": llm_client,        
+        "llm": llm_client,
     }
 
     log.info("Loaded models.yaml from %s (version=%s)", cfg_dir, models_registry.version)
@@ -46,7 +49,9 @@ def main(
         log.info("Run stored in DB: %s", app_cfg.db.path)
 
 
-# register commands once (module import time)
-app.command()(ask)
-app.command()(plan)
-app.command("review-step")(review_step)
+# Register commands at module import time
+app.command()(ask)  # Single ask step (no planning, no critic)
+app.command()(plan) # Only the planner, no execution, no critic
+app.command()(critic) # Only the critic, for debugging or manual review of plan steps
+app.command("exec-step")(exec_step) # Execute a single step with the executor, for debugging or manual review
+app.command()(flow) # Full flow: plan + critic + exec in a loop until done

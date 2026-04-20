@@ -33,9 +33,9 @@ def _extract_json(text: str) -> str:
     return text.strip()
 
 
-def review_step(ctx: typer.Context, step_json: str, result_json: str) -> None:
+def critic(ctx: typer.Context, step_json: str, result_json: str) -> None:
     """
-    Calls the Critic role to review a single executed step.
+    Calls the Critic role to review a single review step.
 
     What it does:
     - Parses step_json into PlanStep
@@ -116,3 +116,4 @@ def review_step(ctx: typer.Context, step_json: str, result_json: str) -> None:
         print(f"Critic OK, approved={verdict.approved} issues={len(verdict.issues)}")
 
     asyncio.run(_run())
+    raise typer.Exit(code=0)

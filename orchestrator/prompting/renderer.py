@@ -4,7 +4,12 @@ from orchestrator.models import PlanStep, StepResult, CriticResult
 from tools.prompt import render_template
 from typing import Sequence
 
-def render_step_template(step: PlanStep, template: str, previous_results: str = "") -> str:
+def render_step_template(
+    step: PlanStep,
+    template: str,
+    previous_results: str = "",
+    critic_feedback_block: str = "",
+) -> str:
     """Render a step template using the structured PlanStep fields."""
     values = {
         "STEP_TITLE": step.title,
@@ -12,6 +17,7 @@ def render_step_template(step: PlanStep, template: str, previous_results: str = 
         "STEP_OUTPUT": step.output,
         "STEP_SUCCESS_CRITERIA": "\n".join(step.success_criteria),
         "PREVIOUS_RESULTS": previous_results,
+        "CRITIC_FEEDBACK_BLOCK": critic_feedback_block,
     }
     return render_template(template, values)
 

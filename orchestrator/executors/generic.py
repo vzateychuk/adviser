@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from llm.types import ChatRequest, Message
-from orchestrator.models import PlanStep, StepResult
+from orchestrator.models import CriticResult, PlanStep, StepResult
 
 from orchestrator.executors.base import BaseExecutor
-from orchestrator.prompting.renderer import render_step_template
+from orchestrator.prompting.renderer import render_step_template, render_critic_feedback
 
 import logging
 
@@ -21,7 +21,14 @@ class GenericExecutor(BaseExecutor):
   - return structured StepResult
   """
 
-  async def execute(self, step: PlanStep, previous_results: str = "") -> StepResult:
+  async def execute(
+      self,
+      step: PlanStep,
+      previous_results: str = "",
+      critic_feedback: CriticResult | None = None,
+  ) -> StepResult:
+    feedback_block = render_critic_feedback(critic_feedback)
+
     system_prompt = render_step_template(
       step,
       self._system_template,
@@ -31,6 +38,7 @@ class GenericExecutor(BaseExecutor):
       step,
       self._user_template,
       previous_results=previous_results,
+      critic_feedback_block=feedback_block,
     )
 
     log.debug("GenericExecutor.execute(step_id=%s, title=%r)", step.id, step.title)
@@ -45,7 +53,7 @@ class GenericExecutor(BaseExecutor):
       )
     )
 
-    log.debug("Executor got response (len=%d)", len(resp.text))
+    log.debug("Executor got response (%s)", resp.text)
 
     return StepResult(
       id=step.id,

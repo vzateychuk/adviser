@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from orchestrator.models import PlanStep, StepResult
+from orchestrator.models import CriticResult, PlanStep, StepResult
 
 class BaseExecutor(ABC):
     """
@@ -38,13 +38,19 @@ class BaseExecutor(ABC):
         self._user_template = user_template
 
     @abstractmethod
-    async def execute(self, step: PlanStep, previous_results: str = "") -> StepResult:
+    async def execute(
+        self,
+        step: PlanStep,
+        previous_results: str = "",
+        critic_feedback: CriticResult | None = None,
+    ) -> StepResult:
         """
         Execute a single plan step.
 
         Args:
             step: PlanStep produced by Planner
-            previous_results: rendered summary of prior step results
+            previous_results: rendered summary of prior approved step results
+            critic_feedback: Critic verdict from previous attempt, or None on first try
 
         Returns:
             StepResult: structured execution output

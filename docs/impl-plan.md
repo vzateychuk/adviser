@@ -110,13 +110,12 @@ user_request → plan → execution → result
 
 ## 3.1 — RunContext (минимальная версия)
 
-**Статус:** ✅ выполнено
+**Статус:** выполнено - требует проверки !!!
 
 ### Назначение
 Минимальный контейнер состояния выполнения.
 
 ### Поля
-- run_id
 - user_request
 - plan
 - step_results
@@ -124,7 +123,7 @@ user_request → plan → execution → result
 
 ### Ограничения
 - без events
-- без retry counters
+- без retry pipeline
 - без metadata graph
 
 ---
@@ -136,19 +135,17 @@ user_request → plan → execution → result
 ### Назначение
 Уточняющий слой перед планированием.
 
-### Важное место в pipeline
-INPUT → CLARIFIER → ORCHESTRATOR → PLANNER
+### Важное место в текущем pipeline
+user-input → CLARIFIER → ORCHESTRATOR → PLANNER → EXECUTOR -> CRITIC
+
+Нужно определить какие именно поля в structured message будут оптимальны для Planner чтобы планировать задачи по кодированию, разработке и запуску тестов, создания базы данных и файлов конфигурации.
+Ранее предполагалась следующая структура:
 
 ### 3.2.1 — ClarificationState
+Формирует на выходе:
 - summary: str
 - key_facts: list[str]
 - open_questions: list[str]
-- is_ready: bool
-- turn_count: int
-- max_turns: int
-
-Инвариант:
-- is_ready=True несовместим с open_questions
 
 ### 3.2.2 — Prompt + роль
 - prompts/clarifier.md

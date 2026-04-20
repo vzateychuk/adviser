@@ -85,7 +85,7 @@ class Critic:
       )
     )
 
-    log.debug("Critic response (len=%d)", len(resp.text))
+    log.debug("Critic response (%s)", resp.text)
 
     json_text = _extract_json(resp.text)
     return CriticResult.model_validate_json(json_text)

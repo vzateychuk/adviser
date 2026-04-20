@@ -2,32 +2,51 @@ from __future__ import annotations
 
 import asyncio
 import logging
+
 import typer
 
-from orchestrator.build_orchestrator import build_orchestrator
+from orchestrator.executors.generic import GenericExecutor
+from orchestrator.models import PlanStep, StepType
+from tools.prompt import load_role_prompts
 
 
 def ask(
     ctx: typer.Context,
     user_request: str,
 ) -> None:
-  """Run user request through the full Planner → Executor → Critic pipeline."""
+    """Call the generic executor for a single ask step."""
+    log = logging.getLogger("advisor.ask")
 
-  log = logging.getLogger("advisor.ask")
+    llm = ctx.obj["llm"]
+    app_cfg = ctx.obj["app_cfg"]
+    models_registry = ctx.obj["models_registry"]
 
-  orchestrator = build_orchestrator(
-    llm=ctx.obj["llm"],
-    app_cfg=ctx.obj["app_cfg"],
-    models_registry=ctx.obj["models_registry"],
-  )
+    model_name = models_registry.models["generic_executor"].primary
+    system_prompt, user_template = load_role_prompts(
+        "generic_executor", prompts_dir=app_cfg.prompts_dir
+    )
 
-  try:
-    result = asyncio.run(orchestrator.run(user_request))
-  except Exception as e:
-    log.exception("Orchestrator failed: %s", e)
-    raise typer.Exit(code=2)
+    executor = GenericExecutor(
+        llm=llm,
+        model_name=model_name,
+        system_prompt=system_prompt,
+        user_template=user_template,
+    )
 
-  for step in result.step_results:
-    typer.echo(step.content)
+    step = PlanStep(
+        id=1,
+        title=user_request[:80],
+        type=StepType.GENERIC,
+        input=user_request,
+        output="answer",
+        success_criteria=["Addresses the user request"],
+    )
 
-  raise log.info("Result: `%s`", result)
+    try:
+        result = asyncio.run(executor.execute(step))
+    except Exception as e:
+        log.exception("Ask failed: %s", e)
+        raise typer.Exit(code=2)
+
+    typer.echo(result.content)
+    raise typer.Exit(code=0)
