@@ -5,27 +5,22 @@
 Default environment is `dev`:
 
 ```bash
-uv run python -m cli.main
-# or
 uv run advisor
-# or
-advisor
 
-# Run with explicit environment:
+# explicit environment
 uv run advisor --env prod
-# or
-advisor --env prod
+uv run advisor --env test   # mock LLM, no network required
 ```
-## Ask
 
-Send a one-shot request to the LLM selected for the given role (from `config/<env>/models.yaml`):
+## Commands
 
-```bash
-# test env uses mock (no network)
-advisor --env test ask "hello"
+Five focused commands, each targeting one role in the pipeline:
 
-# prod/dev env uses real LLM via proxy
-advisor --env prod ask "Reply with exactly: pong" --role planner
+- `ask` — single step: send a question directly to the generic executor, no planning
+- `plan` — call the Planner and print goal + step titles
+- `exec-step` — execute one plan step (routes to generic or code executor by `step.type`)
+- `critic` — review a step result against its success criteria, print verdict
+- `flow` — full pipeline: Planner -> Executor -> Critic loop, retries on rejection
 
 ## Tests
 
@@ -33,53 +28,78 @@ advisor --env prod ask "Reply with exactly: pong" --role planner
 uv run pytest -q
 ```
 
-## Examples
+## Usage
 
-### Ask
+### ask
 
-One-shot LLM request using role prompts from `prompts/` and model aliases from `config/<env>/models.yaml`.
+Calls the generic executor directly with the user request. No planning, no critic loop.
 
 ```bash
-# Default role is generic_executor
-advisor --env prod ask "Summarize why we keep LLM adapters vendor-agnostic."
-
-# Ask code executor (returns code)
-advisor --env prod ask "Write a Python function load_role_prompt(role: str) -> str that loads prompts/<role>.md using pathlib." --role code_executor
+uv run advisor --env dev ask "Summarize why we keep LLM adapters vendor-agnostic."
 ```
 
-#### Plan
+### plan
 
-plan calls the Planner and expects a valid JSON plan (validated by Pydantic / PlanResult).
-It is not a chat command. Inputs like "hello" may fail validation.
+Calls the Planner and prints the structured goal and step titles.
+Expects LLM to return valid `PlanResult` JSON; exits with code 2 on failure.
 
 ```bash
-advisor --env prod plan "Create a 3-step plan to implement X. Return JSON only."
+uv run advisor --env dev plan "Create a 3-step plan to implement a REST API with JWT auth."
 ```
 
-#### Exec step
+### exec-step
 
-Execute a single PlanStep (debug command) using the executor selected by step.type.
+Executes a single `PlanStep` passed as JSON. The executor is selected by `step.type`
+(`generic` or `code`). Useful for debugging a single step in isolation.
 
 ```bash
-advisor --env prod exec-step "$(cat docs/steps/step_generic.json)"
-advisor --env prod exec-step "$(cat docs/steps/step_code.json)"
+uv run advisor --env dev exec-step "$(cat docs/steps/step_generic.json)"
+uv run advisor --env dev exec-step "$(cat docs/steps/step_code.json)"
 ```
 
-### Review step
-
-Review a single executed step using the Critic.
+Example inline:
 
 ```bash
-# Critic review Code step
-advisor --env prod review-step "$(cat docs/steps/step_code.json)" "$(cat docs/steps/result_code.json)"
-
-# Critic review generic step
-advisor --env prod review-step "$(cat docs/steps/step_generic.json)" "$(cat docs/steps/result_generic.json)"
+advisor --env prod exec-step '{
+  "id": 1,
+  "title": "Explain vendor-agnostic adapters",
+  "type": "generic",
+  "input": "Why keep LLM adapters vendor-agnostic?",
+  "output": "Short explanation",
+  "success_criteria": ["mentions adapter layer", "mentions portability"]
+}'
 ```
 
-**Critic Ask (just for fun)**
+### critic
 
-Manual critic prompt invocation via `ask` (not the primary review workflow; prefer `review-step`):
+Reviews a step result against its success criteria. Prints `approved=True/False`
+and the number of issues found. Both arguments are JSON strings.
 
 ```bash
-advisor --env prod ask --role critic "STEP: Implement summarize_previous_results helper. STEP_RESULT: It truncates to 200 chars and loses structure. SUCCESS_CRITERIA: Must include first 20 lines and keep readability. Return JSON verdict."
+uv run advisor --env dev critic \
+  "$(cat docs/steps/step_generic.json)" \
+  '{"id": 1, "executor": "generic", "content": "...", "assumptions": []}'
+```
+
+### flow
+
+Full pipeline: Planner produces a plan, each step is executed then reviewed by
+the Critic. Failed steps are retried with Critic feedback injected into the
+executor prompt. Retries up to `orchestrator.max_retries` from
+`config/<env>/app.yaml`.
+
+```bash
+uv run advisor --env prod flow "Implement a Python helper that loads role prompts from the filesystem."
+```
+
+## Configuration
+
+- `config/<env>/app.yaml` — LLM provider, DB path, prompts directory, `orchestrator.max_retries`
+- `config/<env>/models.yaml` — role-to-model mapping (`planner`, `generic_executor`, `code_executor`, `critic`)
+- `prompts/<role>/system.md` + `user.md` — role system prompts and user templates
+
+## Environments
+
+- `test` — mock LLM, no network, used in CI and unit tests
+- `dev` — OpenAI-compatible proxy at `localhost:4000`, for local development
+- `prod` — OpenAI-compatible proxy at `localhost:4000`, for production use

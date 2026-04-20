@@ -27,8 +27,8 @@ def flow(
         log.exception("Flow failed: %s", e)
         raise typer.Exit(code=2)
 
+    log.info("Flow status: `%s`", result.status)
     for step in result.step_results:
-        typer.echo(step.content)
+      log.info("Step id:`%s`, result: `%s`", step.id, step.content)
 
-    log.info("Result: `%s`", result)
     raise typer.Exit(code=0)

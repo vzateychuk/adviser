@@ -14,7 +14,13 @@ def ask(
     ctx: typer.Context,
     user_request: str,
 ) -> None:
-    """Call the generic executor for a single ask step."""
+    """Call the generic executor for a single ask step.
+
+    TODO: Replace with Clarifier sub-agent — a dedicated conversational agent
+          that chats with the user to clarify intent before routing to the
+          main pipeline. Current implementation is a temporary placeholder
+          that routes directly to GenericExecutor without any clarification.
+    """
     log = logging.getLogger("advisor.ask")
 
     llm = ctx.obj["llm"]

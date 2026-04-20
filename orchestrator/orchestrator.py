@@ -82,6 +82,7 @@ class Orchestrator:
             previous_results=retry_context,
             critic_feedback=ctx.critic_feedback,
         )
+        log.debug("Step `%s` finished with result: `%s`, passing to critic", step.title, step.output)
 
         critic_result = await self._critic.review(step, step_result)
         ctx.critic_feedback = critic_result
