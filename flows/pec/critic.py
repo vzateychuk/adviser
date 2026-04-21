@@ -23,26 +23,24 @@ def _extract_json(text: str) -> str:
 
 class Critic:
     """
-    Critic — verifies OcrExecutor output against step success criteria.
+    Critic verifies OcrExecutor output against step success criteria.
 
     Responsibility:
     - call LLM with step context + execution result
     - parse and validate JSON verdict as CriticResult
     - return approved=True (accept) or approved=False (retry with issues)
 
-    No orchestration logic. No retry decision — that belongs to Orchestrator.
+    No orchestration logic. No retry decision that belongs to Orchestrator.
     """
 
     def __init__(
         self,
         *,
         llm: LLMClient,
-        model: str,
         system_prompt: str,
         user_template: str,
     ):
         self._llm = llm
-        self._model = model
         self._system_prompt = system_prompt
         self._user_template = user_template
 
@@ -61,7 +59,6 @@ class Critic:
 
         resp = await self._llm.chat(
             ChatRequest(
-                model=self._model,
                 messages=[
                     Message(role="system", content=self._system_prompt),
                     Message(role="user", content=user_content),

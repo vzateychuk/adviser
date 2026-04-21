@@ -5,7 +5,7 @@ import typer
 
 from cfg.loader import load_app, load_models
 from db.runtime import Database
-from llm.factory import create_llm
+from llm.factory import create_llm_factory
 from tools.logging import setup_logging
 from cli.commands.ask import ask
 from cli.commands.plan import plan
@@ -30,14 +30,14 @@ def main(
     models_registry = load_models(cfg_dir)
     app_cfg = load_app(cfg_dir)
 
-    llm_client = create_llm(env=env, app_cfg=app_cfg)
+    llm_factory = create_llm_factory(env=env, app_cfg=app_cfg)
 
     ctx.obj = {
         "env": env,
         "models_registry": models_registry,
         "app_cfg": app_cfg,
         "prompts_dir": app_cfg.prompts_dir,
-        "llm": llm_client,
+        "llm_factory": llm_factory,
     }
 
     log.info("Loaded models.yaml from %s (version=%s)", cfg_dir, models_registry.version)

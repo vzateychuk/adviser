@@ -32,11 +32,9 @@ class Planner:
         self,
         *,
         llm: LLMClient,
-        model: str,
         prompt: str,
   ):
         self.llm = llm
-        self.model = model
         self.prompt = prompt
 
 
@@ -47,7 +45,6 @@ class Planner:
 
     resp = await self.llm.chat(
       ChatRequest(
-        model=self.model,
         messages=[
           Message(role="system", content=self.prompt),
           Message(role="user", content=user_request),

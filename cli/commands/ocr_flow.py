@@ -17,7 +17,7 @@ def ocr_flow(
     log = logging.getLogger("advisor.ocr_flow")
 
     orchestrator = build_pec(
-        llm=ctx.obj["llm"],
+        llm_factory=ctx.obj["llm_factory"],
         app_cfg=ctx.obj["app_cfg"],
         models_registry=ctx.obj["models_registry"],
     )

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Optional
+import logging
+from typing import Callable
 
 from llm.types import ChatRequest, ChatResponse
+
+log = logging.getLogger(__name__)
 
 
 MockScenario = Callable[[ChatRequest], ChatResponse]
@@ -23,11 +26,13 @@ class MockLLMClient:
     def __init__(
         self,
         *,
+        model_alias: str,
         planner: MockScenario | None = None,
         ocr_executor: MockScenario | None = None,
         critic: MockScenario | None = None,
         default: MockScenario | None = None,
     ):
+        self._model_alias = model_alias
         self._planner = planner
         self._ocr_executor = ocr_executor
         self._critic = critic
@@ -37,7 +42,11 @@ class MockLLMClient:
         scenario = self._resolve_scenario(req)
         if scenario is None:
             raise RuntimeError("No matching mock scenario. Set a default mock or the relevant role scenario.")
-        return scenario(req)
+        log.debug("MockLLMClient.chat(model_alias=%s)", self._model_alias)
+        resp = scenario(req)
+        if not resp.model_alias:
+            return resp.model_copy(update={"model_alias": self._model_alias})
+        return resp
 
     def _resolve_scenario(self, req: ChatRequest) -> MockScenario | None:
         system = next(

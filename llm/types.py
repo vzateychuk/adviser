@@ -27,7 +27,6 @@ class TransportMeta(BaseModel):
 
 
 class ChatRequest(BaseModel):
-  model: str
   messages: list[Message]
   temperature: float | None = None
   max_tokens: int | None = None
@@ -38,6 +37,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
   text: str
+  model_alias: str = ""
 
 
 MockScenario = Callable[[ChatRequest], ChatResponse]

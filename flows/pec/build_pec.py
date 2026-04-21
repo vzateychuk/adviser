@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from llm.protocol import LLMClient
 from cfg.schema import AppConfig, ModelsRegistry
+from llm.client_factory import LLMClientFactory
 from tools.prompt import load_role_prompts
 
 from flows.pec.orchestrator import Orchestrator
@@ -12,7 +12,7 @@ from flows.pec.ocr_executor import OcrExecutor
 
 def build_pec(
     *,
-    llm: LLMClient,
+    llm_factory: LLMClientFactory,
     app_cfg: AppConfig,
     models_registry: ModelsRegistry,
 ) -> Orchestrator:
@@ -46,18 +46,18 @@ def build_pec(
     # -------------------------
     # Planner
     # -------------------------
+    planner_llm = llm_factory.for_model(planner_model)
     planner = Planner(
-        llm=llm,
-        model=planner_model,
+        llm=planner_llm,
         prompt=planner_system_prompt,
     )
 
     # -------------------------
     # OcrExecutor
     # -------------------------
+    ocr_llm = llm_factory.for_model(ocr_model)
     executor = OcrExecutor(
-        llm=llm,
-        model_name=ocr_model,
+        llm=ocr_llm,
         system_prompt=ocr_system_prompt,
         user_template=ocr_user_template,
     )
@@ -65,9 +65,9 @@ def build_pec(
     # -------------------------
     # Critic
     # -------------------------
+    critic_llm = llm_factory.for_model(critic_model)
     critic = Critic(
-        llm=llm,
-        model=critic_model,
+        llm=critic_llm,
         system_prompt=critic_system_prompt,
         user_template=critic_user_template,
     )

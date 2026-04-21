@@ -6,11 +6,14 @@
 .idea/
 .gemini/
 .copilot/
+.vscode/
 
 # App
 *.env
 .data/
+docs/medocs/
 repo_map.md
+validate.py
 
 # Python
 __pycache__/

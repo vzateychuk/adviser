@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 
 import typer
 
-from llm.types import ChatRequest, Message
 from tools.prompt import load_role_prompts
 from flows.pec.planner import Planner
-
-_FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def plan(
@@ -24,14 +20,15 @@ def plan(
     """
     log = logging.getLogger("advisor.plan")
 
-    llm = ctx.obj["llm"]
+    llm_factory = ctx.obj["llm_factory"]
     app_cfg = ctx.obj["app_cfg"]
     models_registry = ctx.obj["models_registry"]
 
     planner_model = models_registry.models["planner"].primary
     system_prompt, _ = load_role_prompts("planner", prompts_dir=app_cfg.prompts_dir)
+    planner_llm = llm_factory.for_model(planner_model)
 
-    planner = Planner(llm=llm, model=planner_model, prompt=system_prompt)
+    planner = Planner(llm=planner_llm, prompt=system_prompt)
 
     try:
         result = asyncio.run(planner.plan(user_request))

@@ -60,7 +60,7 @@ class Orchestrator:
         log.info("Plan ready: goal=%r, schema=%r, steps=%d", plan.goal, plan.schema_name, len(plan.steps))
 
         if not plan.steps:
-            raise ValueError("Planner returned an empty plan — nothing to execute.")
+            raise ValueError("Planner returned an empty plan nothing to execute.")
 
         completed: List[StepResult] = []
         total_retries = 0
@@ -71,7 +71,7 @@ class Orchestrator:
             completed.append(result)
             total_retries += retries
 
-        # 3. Build output — last step result holds the final YAML
+        # 3. Build output last step result holds the final YAML
         final_result = completed[-1]
         return OcrResult(
             document_path=file_path,

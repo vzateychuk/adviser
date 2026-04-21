@@ -17,19 +17,19 @@ def ask(
     Purpose:
     - Direct LLM call without orchestration layer
     - Used for debugging prompts and model behavior
-    """
+    """ 
 
     log = logging.getLogger("advisor.ask")
 
-    llm = ctx.obj["llm"]
+    llm_factory = ctx.obj["llm_factory"]
     models_registry = ctx.obj["models_registry"]
     ask_model = models_registry.models["default"].primary
+    llm = llm_factory.for_model(ask_model)
 
     try:
         response = asyncio.run(
             llm.chat(
                 ChatRequest(
-                    model=ask_model,
                     messages=[
                         Message(role="user", content=user_request),
                     ],
@@ -40,6 +40,6 @@ def ask(
         log.exception("LLM call failed: %s", e)
         raise typer.Exit(code=2)
 
-    log.info("Response: %s", response.text)
+    log.info("Response (model=%s): %s", response.model_alias or ask_model, response.text)
 
     raise typer.Exit(code=0)

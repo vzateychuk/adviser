@@ -27,12 +27,10 @@ class OcrExecutor:
         self,
         *,
         llm: LLMClient,
-        model_name: str,
         system_prompt: str,
         user_template: str,
     ):
         self._llm = llm
-        self._model_name = model_name
         self._system_template = system_prompt
         self._user_template = user_template
 
@@ -59,7 +57,6 @@ class OcrExecutor:
 
         resp = await self._llm.chat(
             ChatRequest(
-                model=self._model_name,
                 messages=[
                     Message(role="system", content=system_prompt),
                     Message(role="user", content=user_prompt),
