@@ -7,7 +7,7 @@ import re
 from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
 from flows.pec.models import CriticResult, PlanStep, StepResult
-from flows.pec.prompting.renderer import render_critic_template
+from flows.pec.renderer import render_critic_template
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class Critic:
     - parse and validate JSON verdict as CriticResult
     - return approved=True (accept) or approved=False (retry with issues)
 
-    No orchestration logic. No retry decision — that belongs to PecOrchestrator.
+    No orchestration logic. No retry decision — that belongs to Orchestrator.
     """
 
     def __init__(

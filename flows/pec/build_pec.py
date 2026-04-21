@@ -4,10 +4,10 @@ from llm.protocol import LLMClient
 from cfg.schema import AppConfig, ModelsRegistry
 from tools.prompt import load_role_prompts
 
-from flows.pec.orchestrator import PecOrchestrator
+from flows.pec.orchestrator import Orchestrator
 from flows.pec.planner import Planner
 from flows.pec.critic import Critic
-from flows.pec.executors.ocr import OcrExecutor
+from flows.pec.ocr_executor import OcrExecutor
 
 
 def build_pec(
@@ -15,12 +15,12 @@ def build_pec(
     llm: LLMClient,
     app_cfg: AppConfig,
     models_registry: ModelsRegistry,
-) -> PecOrchestrator:
+) -> Orchestrator:
     """
     Composition root for the OCR PEC flow.
 
     Resolves model aliases, loads prompts, wires Planner + OcrExecutor + Critic.
-    Returns a fully constructed PecOrchestrator with no external dependencies.
+    Returns a fully constructed Orchestrator with no external dependencies.
     """
 
     # -------------------------
@@ -76,7 +76,7 @@ def build_pec(
     # Orchestrator
     # -------------------------
     max_retries = app_cfg.orchestrator.max_retries if hasattr(app_cfg, "orchestrator") else 3
-    return PecOrchestrator(
+    return Orchestrator(
         planner=planner,
         executor=executor,
         critic=critic,

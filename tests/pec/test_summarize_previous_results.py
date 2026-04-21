@@ -1,4 +1,4 @@
-from flows.pec.prompting.renderer import summarize_previous_results
+from flows.pec.renderer import summarize_previous_results
 from flows.pec.models import StepResult
 
 

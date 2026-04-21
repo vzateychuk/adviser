@@ -6,13 +6,13 @@ from typing import List
 from flows.pec.models import OcrResult, PlanStep, StepResult
 from flows.pec.planner import Planner
 from flows.pec.critic import Critic
-from flows.pec.executors.ocr import OcrExecutor
-from flows.pec.prompting.renderer import format_critic_feedback, summarize_previous_results
+from flows.pec.ocr_executor import OcrExecutor
+from flows.pec.renderer import format_critic_feedback, summarize_previous_results
 
 log = logging.getLogger(__name__)
 
 
-class PecOrchestrator:
+class Orchestrator:
     """
     OCR PEC Orchestrator.
 

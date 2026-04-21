@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import logging
 
+from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
 from flows.pec.models import PlanStep, StepResult
-from flows.pec.executors.base import BaseExecutor
-from flows.pec.prompting.renderer import render_step_template
+from flows.pec.renderer import render_step_template
 
 log = logging.getLogger(__name__)
 
 
-class OcrExecutor(BaseExecutor):
+class OcrExecutor:
     """
     Executes OCR extraction steps.
 
@@ -22,6 +22,19 @@ class OcrExecutor(BaseExecutor):
     On Critic rejection the executor receives critic_feedback and retries
     the extraction, using feedback as additional context in the prompt.
     """
+
+    def __init__(
+        self,
+        *,
+        llm: LLMClient,
+        model_name: str,
+        system_prompt: str,
+        user_template: str,
+    ):
+        self._llm = llm
+        self._model_name = model_name
+        self._system_template = system_prompt
+        self._user_template = user_template
 
     async def execute(
         self,

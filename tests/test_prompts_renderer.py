@@ -1,5 +1,5 @@
 from flows.pec.models import PlanStep
-from flows.pec.prompting.renderer import render_step_template
+from flows.pec.renderer import render_step_template
 
 
 def test_render_step_template_replaces_placeholders():
