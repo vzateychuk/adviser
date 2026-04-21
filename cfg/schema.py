@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Literal
 from pathlib import Path
 
 
-AgentRole = Literal["planner", "generic_executor", "code_executor", "reviewer"]
+AgentRole = Literal[
+    # PEC flow
+    "planner", "ocr_executor", "critic",
+    # Medic Hub-and-Spoke (future)
+    "coordinator", "ocr", "dialogue", "web_search", "synthesis", "knowledge_base",
+]
 
 
 class RoleModelChoice(BaseModel):
@@ -45,21 +50,17 @@ class DBConfig(BaseModel):
     path: Path
 
 class OrchestratorConfig(BaseModel):
-    """
-    Top-level Orchestrator configuration.
-    """
-
+    """PEC orchestrator runtime settings."""
     max_retries: int = 3
+
 
 class AppConfig(BaseModel):
     """
     Application-level configuration (per environment).
-
-    Currently contains only LLM connection settings.
     """
 
     version: str = "1.0"
     llm: LLMConfig
     db: DBConfig
     prompts_dir: Path = Path("prompts")
-    orchestrator: OrchestratorConfig = Field(default_factory=OrchestratorConfig)
+    orchestrator: OrchestratorConfig = OrchestratorConfig()

@@ -2,45 +2,46 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 import typer
 
-from orchestrator.planner import Planner
+from llm.types import ChatRequest, Message
 from tools.prompt import load_role_prompts
+from flows.pec.planner import Planner
+
+_FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def plan(
     ctx: typer.Context,
     user_request: str,
 ) -> None:
-    """Call the Planner role to plan a user request."""
+    """
+    Debug command: call Planner and print the resulting plan.
+
+    Does NOT execute steps — useful for verifying Planner output for a document.
+    """
     log = logging.getLogger("advisor.plan")
 
     llm = ctx.obj["llm"]
     app_cfg = ctx.obj["app_cfg"]
     models_registry = ctx.obj["models_registry"]
 
-    model_name = models_registry.models["planner"].primary
-    system_prompt, user_template = load_role_prompts(
-        "planner", prompts_dir=app_cfg.prompts_dir
-    )
+    planner_model = models_registry.models["planner"].primary
+    system_prompt, _ = load_role_prompts("planner", prompts_dir=app_cfg.prompts_dir)
 
-    planner = Planner(
-        llm=llm,
-        model=model_name,
-        system_prompt=system_prompt,
-        user_template=user_template,
-    )
+    planner = Planner(llm=llm, model=planner_model, prompt=system_prompt)
 
     try:
-        result = asyncio.run(planner.plan(user_request, attempt=0))
+        result = asyncio.run(planner.plan(user_request))
     except Exception as e:
-        log.exception("Planning failed: %s", e)
+        log.exception("Planner failed: %s", e)
         raise typer.Exit(code=2)
 
-    typer.echo(f"Goal: {result.goal}")
+    log.info("Goal: %s", result.goal)
+    log.info("Schema: %s", result.schema_name)
     for step in result.steps:
-        typer.echo(f"Step {step.id}: {step.title}")
-        log.debug("  type=%s input=%r", step.type, step.input)
+        log.info("  Step %d [%s]: %s", step.id, step.type, step.title)
 
     raise typer.Exit(code=0)

@@ -1,12 +1,12 @@
-from orchestrator.models import PlanStep
-from orchestrator.prompting.renderer import render_step_template
+from flows.pec.models import PlanStep
+from flows.pec.prompting.renderer import render_step_template
 
 
 def test_render_step_template_replaces_placeholders():
     step = PlanStep(
         id=1,
         title="Title",
-        type="generic",
+        type="ocr",
         input="Input",
         output="Output",
         success_criteria=["one", "two"],
@@ -20,7 +20,7 @@ def test_render_step_template_keeps_unknown_placeholders():
     step = PlanStep(
         id=1,
         title="Title",
-        type="generic",
+        type="ocr",
         input="Input",
         output="Output",
         success_criteria=["one"],
@@ -28,3 +28,17 @@ def test_render_step_template_keeps_unknown_placeholders():
     template = "A={{A}} T={{STEP_TITLE}}"
     out = render_step_template(step, template)
     assert out == "A={{A}} T=Title"
+
+
+def test_render_step_template_includes_critic_feedback():
+    step = PlanStep(
+        id=1,
+        title="Title",
+        type="ocr",
+        input="Input",
+        output="Output",
+        success_criteria=["one"],
+    )
+    template = "T={{STEP_TITLE}} F={{CRITIC_FEEDBACK}}"
+    out = render_step_template(step, template, critic_feedback="retry reason")
+    assert out == "T=Title F=retry reason"

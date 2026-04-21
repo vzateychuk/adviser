@@ -1,5 +1,3 @@
-<user_request>
+<document>
 {{USER_REQUEST}}
-</user_request>
-
-{{REVIEW_FEEDBACK_BLOCK}}
+</document>

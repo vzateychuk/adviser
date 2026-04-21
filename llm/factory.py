@@ -2,28 +2,36 @@ from __future__ import annotations
 
 from cfg.schema import AppConfig
 from llm.mock import MockLLMClient
-from llm.mock_scenarios import planner_mock, reviewer_mock, executor_mock, \
-  default_mock
 from llm.openai_client import OpenAICompatibleClient
 from llm.protocol import LLMClient
+from llm.mock_scenarios import (
+    critic_mock,
+    default_mock,
+    ocr_executor_mock,
+    planner_mock,
+)
 
 
-# LLMClient factory
 def create_llm(*, env: str, app_cfg: AppConfig) -> LLMClient:
-  cfg = app_cfg.llm
+    """
+    LLM client factory.
 
-  if env == "test" or cfg.provider == "mock":
-    return MockLLMClient(
-      planner=planner_mock,
-      reviewer=reviewer_mock,
-      executor=executor_mock,
-      default=default_mock,
-    )
+    test / mock  -> MockLLMClient with role-based routing (no network)
+    openai       -> OpenAICompatibleClient (LiteLLM proxy or OpenAI)
+    """
+    cfg = app_cfg.llm
 
-  if cfg.provider == "openai":
-    if not cfg.base_url:
-      raise ValueError("app.yaml: llm.base_url is required for provider=openai")
+    if env == "test" or cfg.provider == "mock":
+        return MockLLMClient(
+            planner=planner_mock,
+            ocr_executor=ocr_executor_mock,
+            critic=critic_mock,
+            default=default_mock,
+        )
 
-    return OpenAICompatibleClient(base_url=cfg.base_url)
+    if cfg.provider == "openai":
+        if not cfg.base_url:
+            raise ValueError("app.yaml: llm.base_url is required for provider=openai")
+        return OpenAICompatibleClient(base_url=cfg.base_url)
 
-  raise ValueError(f"Unsupported llm.provider: {cfg.provider}")
+    raise ValueError(f"Unsupported llm.provider: {cfg.provider}")

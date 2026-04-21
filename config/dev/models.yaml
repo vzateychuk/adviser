@@ -5,15 +5,10 @@ models:
     primary: "qwen2.5-coder:1.5b"
     fallback: "qwen2.5:0.5b"
 
-  generic_executor:
-    primary: "smollm2:360m"
+  ocr_executor:
+    primary: "qwen2.5-coder:1.5b"
     fallback: "qwen2.5:0.5b"
 
-  code_executor:
-    primary: "qwen2.5-coder:0.5b"
-    fallback: "qwen2.5-coder:1.5b"
-
-  reviewer:
+  critic:
     primary: "qwen2.5:0.5b"
     fallback: "qwen2.5-coder:1.5b"
-    

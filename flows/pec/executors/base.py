@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from orchestrator.models import ReviewResult, PlanStep, StepResult
+from flows.pec.models import PlanStep, StepResult
 
 class BaseExecutor(ABC):
     """
@@ -42,15 +42,15 @@ class BaseExecutor(ABC):
         self,
         step: PlanStep,
         previous_results: str = "",
-        review_feedback: ReviewResult | None = None,
+        critic_feedback: str = "",
     ) -> StepResult:
         """
         Execute a single plan step.
 
         Args:
             step: PlanStep produced by Planner
-            previous_results: rendered summary of prior approved step results
-            review_feedback: Review verdict from previous attempt, or None on first try
+            previous_results: rendered summary of prior step results
+            critic_feedback: formatted Critic issues from previous attempt (empty on first run)
 
         Returns:
             StepResult: structured execution output

@@ -1,7 +1,7 @@
 <step>
   <title>{{STEP_TITLE}}</title>
-  <input>{{STEP_INPUT}}</input>
-  <expected_output>{{STEP_OUTPUT}}</expected_output>
+  <file_path>{{STEP_INPUT}}</file_path>
+  <schema>{{STEP_OUTPUT}}</schema>
   <success_criteria>{{STEP_SUCCESS_CRITERIA}}</success_criteria>
 </step>
 
@@ -9,4 +9,6 @@
 {{PREVIOUS_RESULTS}}
 </previous_results>
 
-{{REVIEW_FEEDBACK_BLOCK}}
+<critic_feedback>
+{{CRITIC_FEEDBACK}}
+</critic_feedback>

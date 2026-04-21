@@ -4,12 +4,9 @@ models:
   planner:
     primary: "mock"
     fallback: "mock"
-  generic_executor:
+  ocr_executor:
     primary: "mock"
     fallback: "mock"
-  code_executor:
-    primary: "mock"
-    fallback: "mock"
-  reviewer:
+  critic:
     primary: "mock"
     fallback: "mock"

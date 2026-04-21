@@ -9,9 +9,7 @@ from llm.factory import create_llm
 from tools.logging import setup_logging
 from cli.commands.ask import ask
 from cli.commands.plan import plan
-from cli.commands.flow import flow
-from cli.commands.review import review
-from cli.commands.exec import exec_step
+from cli.commands.ocr_flow import ocr_flow
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
 
@@ -49,9 +47,7 @@ def main(
         log.info("Run stored in DB: %s", app_cfg.db.path)
 
 
-# Register commands at module import time
-app.command()(ask)  # Single ask step (no planning, no review)
-app.command()(plan) # Only the planner, no execution, no review
-app.command()(review) # Only the reviewer, for debugging or manual review of plan steps
-app.command("exec-step")(exec_step) # Execute a single step with the executor, for debugging or manual review
-app.command()(flow) # Full flow: plan + review + exec in a loop until done
+# register commands once (module import time)
+app.command()(ask)
+app.command()(plan)
+app.command("ocr-flow")(ocr_flow)

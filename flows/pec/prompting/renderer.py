@@ -1,25 +1,55 @@
 from __future__ import annotations
 
-from orchestrator.models import PlanStep, StepResult, ReviewResult
+from flows.pec.models import CriticResult, PlanStep, StepResult
 from tools.prompt import render_template
 from typing import Sequence
+
 
 def render_step_template(
     step: PlanStep,
     template: str,
     previous_results: str = "",
-    review_feedback_block: str = "",
+    critic_feedback: str = "",
 ) -> str:
-    """Render a step template using the structured PlanStep fields."""
+    """Render an executor step template using PlanStep fields."""
     values = {
         "STEP_TITLE": step.title,
         "STEP_INPUT": step.input,
         "STEP_OUTPUT": step.output,
         "STEP_SUCCESS_CRITERIA": "\n".join(step.success_criteria),
         "PREVIOUS_RESULTS": previous_results,
-        "REVIEW_FEEDBACK_BLOCK": review_feedback_block,
+        "CRITIC_FEEDBACK": critic_feedback,
     }
     return render_template(template, values)
+
+
+def render_critic_template(
+    step: PlanStep,
+    result: StepResult,
+    template: str,
+) -> str:
+    """Render the Critic user prompt template."""
+    criteria_text = "\n".join(f"- {c}" for c in step.success_criteria)
+    step_text = (
+        f"title: {step.title}\n"
+        f"type: {step.type}\n"
+        f"input: {step.input}\n"
+        f"expected_output: {step.output}\n"
+    )
+    values = {
+        "STEP": step_text,
+        "STEP_RESULT": result.content,
+        "SUCCESS_CRITERIA": criteria_text,
+    }
+    return render_template(template, values)
+
+
+def format_critic_feedback(verdict: CriticResult, *, attempt: int) -> str:
+    """Format CriticResult issues into a compact text block for executor retry."""
+    lines = [f"[Critic feedback — attempt {attempt}] {verdict.summary}"]
+    for issue in verdict.issues:
+        lines.append(f"  [{issue.severity.upper()}] {issue.description} => {issue.suggestion}")
+    return "\n".join(lines)
 
 def summarize_previous_results(previous_results: Sequence[StepResult], *, max_lines: int = 20) -> str:
   """
@@ -43,32 +73,8 @@ def summarize_previous_results(previous_results: Sequence[StepResult], *, max_li
     snippet = "\n".join(lines[:max_lines]).strip()
 
     parts.append(
-      f"[step_id={r.id} executor={r.executor}]\n"
+      f"[step_id={r.step_id} executor={r.executor}]\n"
       f"OUTPUT:\n{snippet}"
     )
 
   return "\n\n".join(parts).strip()
-
-def render_review_feedback(feedback: ReviewResult | None, *, attempt: int = 0) -> str:
-  """
-  Render ReviewResult as an XML block for injection into Planner's user prompt.
-
-  Returns empty string on first run (no feedback yet).
-  """
-  if feedback is None:
-    return ""
-
-  issues_xml = "\n".join(
-    f'    <issue severity="{issue.severity}">\n'
-    f"      <description>{issue.description}</description>\n"
-    f"      <suggestion>{issue.suggestion}</suggestion>\n"
-    f"    </issue>"
-    for issue in feedback.issues
-  )
-
-  return (
-    f'\n<review_feedback attempt="{attempt}">\n'
-    f"  <summary>{feedback.summary}</summary>\n"
-    f"  <issues>\n{issues_xml}\n  </issues>\n"
-    f"</review_feedback>"
-  )
