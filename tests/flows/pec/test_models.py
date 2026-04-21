@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from orchestrator.models import PlanResult, PlanStep, CriticResult
+from orchestrator.models import PlanResult, PlanStep, ReviewResult
 
 
 def test_plan_validates_and_serializes():
@@ -43,11 +43,11 @@ def test_plan_rejects_empty_steps():
         PlanResult(goal="x", steps=[])
 
 
-def test_critic_requires_summary():
+def test_review_requires_summary():
     """
-    CriticResult.summary is required to be non-empty.
-    This ensures the critic always provides a short verdict explanation
+    ReviewResult.summary is required to be non-empty.
+    This ensures the review always provides a short verdict explanation
     suitable for logging and for retry decisions.
     """
     with pytest.raises(ValidationError):
-        CriticResult(approved=True, issues=[], summary="")
+        ReviewResult(approved=True, issues=[], summary="")

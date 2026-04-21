@@ -23,25 +23,25 @@ _RESULT = {
 }
 
 
-def test_critic_approves_valid_step():
+def test_review_approves_valid_step():
     r = runner.invoke(
         app,
-        ["--env", "test", "critic", json.dumps(_STEP), json.dumps(_RESULT)],
+        ["--env", "test", "review", json.dumps(_STEP), json.dumps(_RESULT)],
     )
     assert r.exit_code == 0
 
 
-def test_critic_invalid_step_json():
+def test_review_invalid_step_json():
     r = runner.invoke(
         app,
-        ["--env", "test", "critic", "not-valid-json", json.dumps(_RESULT)],
+        ["--env", "test", "review", "not-valid-json", json.dumps(_RESULT)],
     )
     assert r.exit_code != 0
 
 
-def test_critic_invalid_result_json():
+def test_review_invalid_result_json():
     r = runner.invoke(
         app,
-        ["--env", "test", "critic", json.dumps(_STEP), "{broken"],
+        ["--env", "test", "review", json.dumps(_STEP), "{broken"],
     )
     assert r.exit_code > 0

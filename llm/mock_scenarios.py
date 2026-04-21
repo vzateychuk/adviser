@@ -38,12 +38,12 @@ def planner_mock(req: ChatRequest) -> ChatResponse:
 def executor_mock(req: ChatRequest) -> ChatResponse:
   return ChatResponse(text="Mock executor output: task completed successfully.")
 
-# Critic mock
-def critic_mock(req: ChatRequest) -> ChatResponse:
+# Reviewer mock
+def reviewer_mock(req: ChatRequest) -> ChatResponse:
   payload = {
     "approved": True,
     "issues": [],
-    "summary": "Mock critic approval",
+    "summary": "Mock reviewer approval",
   }
 
   return ChatResponse(text=json.dumps(payload))

@@ -14,6 +14,6 @@ If you make assumptions, list them under "Assumptions:" before the result.
 If previous step results are provided, use them as context — do not repeat them.
 
 Retry
-- If <critic_feedback> is present, a previous attempt was rejected.
+- If <review_feedback> is present, a previous attempt was rejected.
 - Read each issue's `suggestion` and address it directly in this attempt.
 - Do not repeat the same approach that was rejected.

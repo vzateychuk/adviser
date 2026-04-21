@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orchestrator.models import PlanStep, StepResult, CriticResult
+from orchestrator.models import PlanStep, StepResult, ReviewResult
 from tools.prompt import render_template
 from typing import Sequence
 
@@ -8,7 +8,7 @@ def render_step_template(
     step: PlanStep,
     template: str,
     previous_results: str = "",
-    critic_feedback_block: str = "",
+    review_feedback_block: str = "",
 ) -> str:
     """Render a step template using the structured PlanStep fields."""
     values = {
@@ -17,7 +17,7 @@ def render_step_template(
         "STEP_OUTPUT": step.output,
         "STEP_SUCCESS_CRITERIA": "\n".join(step.success_criteria),
         "PREVIOUS_RESULTS": previous_results,
-        "CRITIC_FEEDBACK_BLOCK": critic_feedback_block,
+        "REVIEW_FEEDBACK_BLOCK": review_feedback_block,
     }
     return render_template(template, values)
 
@@ -49,9 +49,9 @@ def summarize_previous_results(previous_results: Sequence[StepResult], *, max_li
 
   return "\n\n".join(parts).strip()
 
-def render_critic_feedback(feedback: CriticResult | None, *, attempt: int = 0) -> str:
+def render_review_feedback(feedback: ReviewResult | None, *, attempt: int = 0) -> str:
   """
-  Render CriticResult as an XML block for injection into Planner's user prompt.
+  Render ReviewResult as an XML block for injection into Planner's user prompt.
 
   Returns empty string on first run (no feedback yet).
   """
@@ -67,8 +67,8 @@ def render_critic_feedback(feedback: CriticResult | None, *, attempt: int = 0) -
   )
 
   return (
-    f'\n<critic_feedback attempt="{attempt}">\n'
+    f'\n<review_feedback attempt="{attempt}">\n'
     f"  <summary>{feedback.summary}</summary>\n"
     f"  <issues>\n{issues_xml}\n  </issues>\n"
-    f"</critic_feedback>"
+    f"</review_feedback>"
   )

@@ -12,7 +12,7 @@ def flow(
     ctx: typer.Context,
     user_request: str,
 ) -> None:
-    """Run user request through the full Planner -> Executor -> Critic pipeline."""
+    """Run user request through the full Planner -> Executor -> Reviewer pipeline."""
     log = logging.getLogger("advisor.flow")
 
     orchestrator = build_orchestrator(

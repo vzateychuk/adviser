@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from cfg.schema import AppConfig
 from llm.mock import MockLLMClient
-from llm.mock_scenarios import planner_mock, critic_mock, executor_mock, \
+from llm.mock_scenarios import planner_mock, reviewer_mock, executor_mock, \
   default_mock
 from llm.openai_client import OpenAICompatibleClient
 from llm.protocol import LLMClient
@@ -15,7 +15,7 @@ def create_llm(*, env: str, app_cfg: AppConfig) -> LLMClient:
   if env == "test" or cfg.provider == "mock":
     return MockLLMClient(
       planner=planner_mock,
-      critic=critic_mock,
+      reviewer=reviewer_mock,
       executor=executor_mock,
       default=default_mock,
     )

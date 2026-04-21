@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from llm.types import ChatRequest, Message
-from orchestrator.models import CriticResult, PlanStep, StepResult
+from orchestrator.models import ReviewResult, PlanStep, StepResult
 
 from orchestrator.executors.base import BaseExecutor
-from orchestrator.prompting.renderer import render_step_template, render_critic_feedback
+from orchestrator.prompting.renderer import render_step_template, render_review_feedback
 
 import logging
 
@@ -25,11 +25,11 @@ class CodeExecutor(BaseExecutor):
       self,
       step: PlanStep,
       previous_results: str = "",
-      critic_feedback: CriticResult | None = None,
+      review_feedback: ReviewResult | None = None,
   ) -> StepResult:
     log.debug("CodeExecutor.execute(step_id=%s, title=%r)", step.id, step.title)
 
-    feedback_block = render_critic_feedback(critic_feedback)
+    feedback_block = render_review_feedback(review_feedback)
 
     system_prompt = render_step_template(
       step,
@@ -40,7 +40,7 @@ class CodeExecutor(BaseExecutor):
       step,
       self._user_template,
       previous_results=previous_results,
-      critic_feedback_block=feedback_block,
+      review_feedback_block=feedback_block,
     )
 
     resp = await self._llm.chat(

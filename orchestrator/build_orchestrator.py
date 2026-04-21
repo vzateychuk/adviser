@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from llm.protocol import LLMClient
 from cfg.schema import AppConfig, ModelsRegistry
-from orchestrator.critic import Critic
+from orchestrator.reviewer import Reviewer
 from tools.prompt import load_role_prompts
 
 from orchestrator.orchestrator import Orchestrator
@@ -33,7 +33,7 @@ def build_orchestrator(
   planner_model = models_registry.models["planner"].primary
   generic_model = models_registry.models["generic_executor"].primary
   code_model = models_registry.models["code_executor"].primary
-  critic_model = models_registry.models["critic"].primary
+  reviewer_model = models_registry.models["reviewer"].primary
 
   planner_system_prompt, planner_user_template = load_role_prompts("planner",
                                                                    prompts_dir=app_cfg.prompts_dir)
@@ -45,7 +45,7 @@ def build_orchestrator(
     "code_executor",
     prompts_dir=app_cfg.prompts_dir,
   )
-  critic_system_prompt, critic_user_template = load_role_prompts("critic",
+  reviewer_system_prompt, reviewer_user_template = load_role_prompts("reviewer",
                                                                  prompts_dir=app_cfg.prompts_dir)
 
   # Planner
@@ -72,12 +72,12 @@ def build_orchestrator(
     ),
   }
 
-  # Critic
-  critic = Critic(
+  # Reviewer
+  reviewer = Reviewer(
     llm=llm,
-    model=critic_model,
-    system_prompt=critic_system_prompt,
-    user_template=critic_user_template,
+    model=reviewer_model,
+    system_prompt=reviewer_system_prompt,
+    user_template=reviewer_user_template,
   )
 
   # Router
@@ -88,6 +88,6 @@ def build_orchestrator(
     planner=planner,
     executors=executors,
     router=router,
-    critic=critic,
+    reviewer=reviewer,
     max_retries=app_cfg.orchestrator.max_retries,
   )

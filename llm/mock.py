@@ -13,12 +13,12 @@ class MockLLMClient:
       self,
       *,
       planner: MockScenario | None = None,
-      critic: MockScenario | None = None,
+      reviewer: MockScenario | None = None,
       executor: MockScenario | None = None,   # добавить
       default: MockScenario | None = None,
   ):
     self._planner = planner
-    self._critic = critic
+    self._reviewer = reviewer
     self._executor = executor
     self._default = default
 
@@ -34,6 +34,6 @@ class MockLLMClient:
     )
     if "Role: Planner" in system:
       return self._planner or self._default
-    if "Role: Critic" in system:
-      return self._critic or self._default
+    if "Role: Reviewer" in system:
+      return self._reviewer or self._default
     return self._executor or self._default

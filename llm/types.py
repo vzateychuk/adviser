@@ -17,7 +17,7 @@ class LLMConfig(BaseModel):
   base_url: str | None = None
 
   # TEST ONLY
-  mock_mode: Literal["planner", "critic", "default"] | None = None
+  mock_mode: Literal["planner", "reviewer", "default"] | None = None
 
 
 class TransportMeta(BaseModel):

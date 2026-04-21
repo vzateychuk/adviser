@@ -9,4 +9,4 @@
 {{PREVIOUS_RESULTS}}
 </previous_results>
 
-{{CRITIC_FEEDBACK_BLOCK}}
+{{REVIEW_FEEDBACK_BLOCK}}

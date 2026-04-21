@@ -1,4 +1,4 @@
-Role: Critic (Reviewer)
+Role: Reviewer
 You review the output of an execution step against its success criteria.
 
 Key principles
@@ -37,6 +37,6 @@ Output schema
 ```
 
 Re-planning
-- If <critic_feedback> is present, this is a retry. The previous plan was rejected.
+- If <review_feedback> is present, this is a retry. The previous plan was rejected.
 - Adjust the plan to directly address each issue's `suggestion`.
 - Do not repeat steps that were approved.

@@ -19,8 +19,8 @@ Five focused commands, each targeting one role in the pipeline:
 - `ask` — single step: send a question directly to the generic executor, no planning
 - `plan` — call the Planner and print goal + step titles
 - `exec-step` — execute one plan step (routes to generic or code executor by `step.type`)
-- `critic` — review a step result against its success criteria, print verdict
-- `flow` — full pipeline: Planner -> Executor -> Critic loop, retries on rejection
+- `review` — review a step result against its success criteria, print verdict
+- `flow` — full pipeline: Planner -> Executor -> Reviewer loop, retries on rejection
 
 ## Tests
 
@@ -32,7 +32,7 @@ uv run pytest -q
 
 ### ask
 
-Calls the generic executor directly with the user request. No planning, no critic loop.
+Calls the generic executor directly with the user request. No planning, no review loop.
 
 ```bash
 uv run advisor --env dev ask "Summarize why we keep LLM adapters vendor-agnostic."
@@ -60,7 +60,7 @@ uv run advisor --env dev exec-step "$(cat docs/steps/step_code.json)"
 Example inline:
 
 ```bash
-advisor --env prod exec-step '{
+uv run advisor --env prod exec-step '{
   "id": 1,
   "title": "Explain vendor-agnostic adapters",
   "type": "generic",
@@ -70,13 +70,13 @@ advisor --env prod exec-step '{
 }'
 ```
 
-### critic
+### review
 
 Reviews a step result against its success criteria. Prints `approved=True/False`
 and the number of issues found. Both arguments are JSON strings.
 
 ```bash
-uv run advisor --env dev critic \
+uv run advisor --env dev review \
   "$(cat docs/steps/step_generic.json)" \
   '{"id": 1, "executor": "generic", "content": "...", "assumptions": []}'
 ```
@@ -84,7 +84,7 @@ uv run advisor --env dev critic \
 ### flow
 
 Full pipeline: Planner produces a plan, each step is executed then reviewed by
-the Critic. Failed steps are retried with Critic feedback injected into the
+the Reviewer. Failed steps are retried with Reviewer feedback injected into the
 executor prompt. Retries up to `orchestrator.max_retries` from
 `config/<env>/app.yaml`.
 
@@ -95,7 +95,7 @@ uv run advisor --env prod flow "Implement a Python helper that loads role prompt
 ## Configuration
 
 - `config/<env>/app.yaml` — LLM provider, DB path, prompts directory, `orchestrator.max_retries`
-- `config/<env>/models.yaml` — role-to-model mapping (`planner`, `generic_executor`, `code_executor`, `critic`)
+- `config/<env>/models.yaml` — role-to-model mapping (`planner`, `generic_executor`, `code_executor`, `reviewer`)
 - `prompts/<role>/system.md` + `user.md` — role system prompts and user templates
 
 ## Environments

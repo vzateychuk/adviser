@@ -70,11 +70,11 @@ class StepResult(BaseModel):
     assumptions: list[str] = Field(default_factory=list)
 
 
-class CriticIssue(BaseModel):
+class ReviewIssue(BaseModel):
     """
-    One concrete issue found by the Critic.
+    One concrete issue found by the Reviewer.
 
-    The Critic should provide actionable feedback. Each issue must include:
+    The Reviewer should provide actionable feedback. Each issue must include:
     - severity level (used by retry policy / prioritization)
     - description of what is wrong
     - suggestion with a concrete fix action
@@ -85,23 +85,23 @@ class CriticIssue(BaseModel):
     suggestion: str = Field(min_length=1)
 
 
-class CriticResult(BaseModel):
+class ReviewResult(BaseModel):
     """
-    Critic verdict artifact.
+    Reviewer verdict artifact.
 
-    Used by the critic loop to decide whether to accept the step result or retry it.
-    This model is aligned with the critic prompt: JSON-only output with:
+    Used by the review loop to decide whether to accept the step result or retry it.
+    This model is aligned with the review prompt: JSON-only output with:
     - approved: boolean verdict
     - issues: empty if approved==True; non-empty if approved==False
     - summary: short one-sentence verdict
     """
 
     approved: bool
-    issues: list[CriticIssue] = Field(default_factory=list)
+    issues: list[ReviewIssue] = Field(default_factory=list)
     summary: str = Field(min_length=1)
 
     @model_validator(mode="after")
-    def check_issues_on_reject(self) -> CriticResult:
+    def check_issues_on_reject(self) -> ReviewResult:
         if not self.approved and not self.issues:
             raise ValueError("issues must not be empty when approved is False")
         return self
@@ -117,7 +117,7 @@ class RunContext:
   user_request: str
   plan: PlanResult | None = None
   step_results: list[StepResult] = field(default_factory=list)
-  critic_feedback: CriticResult | None = None
+  review_feedback: ReviewResult | None = None
   max_retries: int = 3
   retry_count: int = 0
   status: RunStatus | None = None

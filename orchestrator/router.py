@@ -31,7 +31,7 @@ class ExecutorRouter:
     - Pure function of PlanStep
 
     Future extensions:
-    - fallback routing (on critic reject)
+    - fallback routing (on review reject)
     - capability-based routing
     """
 

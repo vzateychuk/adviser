@@ -10,6 +10,6 @@ models:
   code_executor:
     primary: "mock"
     fallback: "mock"
-  critic:
+  reviewer:
     primary: "mock"
     fallback: "mock"

@@ -16,7 +16,7 @@ _CFG_DIR = Path("config/test")
 
 
 # ---------------------------------------------------------------------------
-# Helpers — critic scenarios
+# Helpers — review scenarios
 # ---------------------------------------------------------------------------
 
 def _approve_always(req: ChatRequest) -> ChatResponse:
@@ -40,7 +40,7 @@ def _reject_always(req: ChatRequest) -> ChatResponse:
 
 
 def _reject_n_then_approve(n: int):
-    """Critic scenario: rejects the first n calls, then approves."""
+    """Reviewer scenario: rejects the first n calls, then approves."""
     state = {"calls": 0}
 
     def scenario(req: ChatRequest) -> ChatResponse:
@@ -68,8 +68,8 @@ def _reject_n_then_approve(n: int):
 # Factory
 # ---------------------------------------------------------------------------
 
-def _build(critic_scenario, max_retries: int = 3):
-    """Build a test orchestrator with a custom critic and max_retries override."""
+def _build(reviewer_scenario, max_retries: int = 3):
+    """Build a test orchestrator with a custom review and max_retries override."""
     app_cfg = load_app(_CFG_DIR).model_copy(
         update={"orchestrator": OrchestratorConfig(max_retries=max_retries)}
     )
@@ -77,7 +77,7 @@ def _build(critic_scenario, max_retries: int = 3):
     llm = MockLLMClient(
         planner=planner_mock,
         executor=executor_mock,
-        critic=critic_scenario,
+        reviewer=reviewer_scenario,
     )
     return build_orchestrator(llm=llm, app_cfg=app_cfg, models_registry=models_registry)
 
@@ -87,7 +87,7 @@ def _build(critic_scenario, max_retries: int = 3):
 # ---------------------------------------------------------------------------
 
 def test_run_returns_result_when_approved_on_first_attempt():
-    """Happy path: critic approves immediately, no retries."""
+    """Happy path: review approves immediately, no retries."""
     ctx = asyncio.run(_build(_approve_always).run("test request"))
 
     assert ctx.status == RunStatus.SUCCESS
@@ -97,7 +97,7 @@ def test_run_returns_result_when_approved_on_first_attempt():
 
 
 def test_run_retries_on_reject_then_approves():
-    """Critic rejects once, approves on second attempt."""
+    """Reviewer rejects once, approves on second attempt."""
     ctx = asyncio.run(_build(_reject_n_then_approve(n=1), max_retries=3).run("test request"))
 
     assert ctx.status == RunStatus.SUCCESS
@@ -106,7 +106,7 @@ def test_run_retries_on_reject_then_approves():
 
 
 def test_run_exhausts_max_retries_and_returns_fail():
-    """Critic always rejects; orchestrator exits after max_retries without hanging."""
+    """Reviewer always rejects; orchestrator exits after max_retries without hanging."""
     ctx = asyncio.run(_build(_reject_always, max_retries=2).run("test request"))
 
     assert ctx.status == RunStatus.FAIL

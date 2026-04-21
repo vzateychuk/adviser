@@ -5,7 +5,7 @@ from typing import Literal
 from pathlib import Path
 
 
-AgentRole = Literal["planner", "generic_executor", "code_executor", "critic"]
+AgentRole = Literal["planner", "generic_executor", "code_executor", "reviewer"]
 
 
 class RoleModelChoice(BaseModel):

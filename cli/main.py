@@ -10,7 +10,7 @@ from tools.logging import setup_logging
 from cli.commands.ask import ask
 from cli.commands.plan import plan
 from cli.commands.flow import flow
-from cli.commands.critic import critic
+from cli.commands.review import review
 from cli.commands.exec import exec_step
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
@@ -50,8 +50,8 @@ def main(
 
 
 # Register commands at module import time
-app.command()(ask)  # Single ask step (no planning, no critic)
-app.command()(plan) # Only the planner, no execution, no critic
-app.command()(critic) # Only the critic, for debugging or manual review of plan steps
+app.command()(ask)  # Single ask step (no planning, no review)
+app.command()(plan) # Only the planner, no execution, no review
+app.command()(review) # Only the reviewer, for debugging or manual review of plan steps
 app.command("exec-step")(exec_step) # Execute a single step with the executor, for debugging or manual review
-app.command()(flow) # Full flow: plan + critic + exec in a loop until done
+app.command()(flow) # Full flow: plan + review + exec in a loop until done

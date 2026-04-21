@@ -1,4 +1,4 @@
-# orchestrator/critic.py
+# orchestrator/reviewer.py
 from __future__ import annotations
 
 import re
@@ -6,7 +6,7 @@ import logging
 
 from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
-from orchestrator.models import CriticResult, PlanStep, StepResult
+from orchestrator.models import ReviewResult, PlanStep, StepResult
 from tools.prompt import render_template
 
 log = logging.getLogger(__name__)
@@ -21,14 +21,14 @@ def _extract_json(text: str) -> str:
   return text.strip()
 
 
-class Critic:
+class Reviewer:
   """
-  Critic — reviews executor output against step success criteria.
+  Reviewer — reviews executor output against step success criteria.
 
   Responsibilities:
-  - render critic prompts
+  - render reviewer prompts
   - call LLM
-  - parse and return CriticResult
+  - parse and return ReviewResult
 
   No orchestration logic. No retry logic.
   """
@@ -46,7 +46,7 @@ class Critic:
     self._system_prompt = system_prompt
     self._user_template = user_template
 
-  async def review(self, step: PlanStep, result: StepResult) -> CriticResult:
+  async def review(self, step: PlanStep, result: StepResult) -> ReviewResult:
     """
     Review executor output for a single step.
 
@@ -55,7 +55,7 @@ class Critic:
         result: StepResult returned by the executor
 
     Returns:
-        CriticResult with approved/rejected verdict and issues
+        ReviewResult with approved/rejected verdict and issues
     """
     step_text = (
       f"id: {step.id}\n"
@@ -73,7 +73,7 @@ class Critic:
       },
     )
 
-    log.debug("Critic.review(step_id=%s, title=%r)", step.id, step.title)
+    log.debug("Reviewer.review(step_id=%s, title=%r)", step.id, step.title)
 
     resp = await self._llm.chat(
       ChatRequest(
@@ -85,7 +85,7 @@ class Critic:
       )
     )
 
-    log.debug("Critic response (%s)", resp.text)
+    log.debug("Reviewer response (%s)", resp.text)
 
     json_text = _extract_json(resp.text)
-    return CriticResult.model_validate_json(json_text)
+    return ReviewResult.model_validate_json(json_text)

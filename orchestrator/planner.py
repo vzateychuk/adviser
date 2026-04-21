@@ -4,8 +4,8 @@ import re
 
 from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
-from orchestrator.models import PlanResult, CriticResult
-from orchestrator.prompting.renderer import render_critic_feedback
+from orchestrator.models import PlanResult, ReviewResult
+from orchestrator.prompting.renderer import render_review_feedback
 from tools.prompt import render_template
 
 _FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
@@ -48,22 +48,22 @@ class Planner:
     async def plan(
         self,
         user_request: str,
-        critic_feedback: CriticResult | None = None,
+        review_feedback: ReviewResult | None = None,
         *,
         attempt: int = 0,
     ) -> PlanResult:
         """
         Calls LLM and parses structured PlanResult.
 
-        On retry, injects critic feedback into the user prompt so the planner
+        On retry, injects review feedback into the user prompt so the planner
         can address the issues in the new plan.
         """
         user_content = render_template(
             self.user_template,
             {
                 "USER_REQUEST": user_request,
-                "CRITIC_FEEDBACK_BLOCK": render_critic_feedback(
-                    critic_feedback, attempt=attempt
+                "REVIEW_FEEDBACK_BLOCK": render_review_feedback(
+                    review_feedback, attempt=attempt
                 ),
             },
         )

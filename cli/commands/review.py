@@ -7,7 +7,7 @@ import re
 
 import typer
 
-from orchestrator.models import CriticResult, PlanStep, StepResult
+from orchestrator.models import ReviewResult, PlanStep, StepResult
 from llm.errors import LLMError
 from llm.protocol import LLMClient
 from llm.types import ChatRequest, Message
@@ -33,15 +33,15 @@ def _extract_json(text: str) -> str:
     return text.strip()
 
 
-def critic(ctx: typer.Context, step_json: str, result_json: str) -> None:
+def review(ctx: typer.Context, step_json: str, result_json: str) -> None:
     """
-    Calls the Critic role to review a single review step.
+    Calls the Reviewer role to review a single execution step.
 
     What it does:
     - Parses step_json into PlanStep
     - Parses result_json into StepResult
-    - Calls the LLM using prompts/critic.md and expects JSON-only verdict
-    - Validates response against CriticResult
+    - Calls the LLM using prompts/reviewer.md and expects JSON-only verdict
+    - Validates response against ReviewResult
     - Prints a compact verdict summary
     """
     if not ctx.obj:
@@ -62,9 +62,9 @@ def critic(ctx: typer.Context, step_json: str, result_json: str) -> None:
     except Exception as e:
         raise typer.BadParameter(f"Invalid result_json (StepResult): {e}") from e
 
-    model_alias = models_registry.models["critic"].primary
+    model_alias = models_registry.models["reviewer"].primary
 
-    # Build critic prompt input (best-effort structured text)
+    # Build reviewer prompt input (best-effort structured text)
     criteria_text = "\n".join(f"- {c}" for c in step.success_criteria)
     step_text = (
         f"title: {step.title}\n"
@@ -73,7 +73,7 @@ def critic(ctx: typer.Context, step_json: str, result_json: str) -> None:
         f"expected_output: {step.output}\n"
     )
 
-    system_prompt, user_template = load_role_prompts("critic", prompts_dir=prompts_dir)
+    system_prompt, user_template = load_role_prompts("reviewer", prompts_dir=prompts_dir)
     user_content = render_template(
         user_template,
         {
@@ -92,11 +92,11 @@ def critic(ctx: typer.Context, step_json: str, result_json: str) -> None:
                         Message(role="system", content=system_prompt),
                         Message(role="user", content=user_content),
                     ],
-                    # meta={"role": "critic"},
+                    # meta={"role": "reviewer"},
                 )
             )
         except LLMError as e:
-            log.error("Critic request failed. Model='%s'. Details: %s", model_alias, e)
+            log.error("Reviewer request failed. Model='%s'. Details: %s", model_alias, e)
             raise typer.Exit(code=2) from e
 
         json_text = _extract_json(resp.text)
@@ -104,16 +104,16 @@ def critic(ctx: typer.Context, step_json: str, result_json: str) -> None:
         try:
             data = json.loads(json_text)
         except json.JSONDecodeError as e:
-            log.error("Critic returned non-JSON output. First 200 chars: %r", resp.text[:200])
+            log.error("Reviewer returned non-JSON output. First 200 chars: %r", resp.text[:200])
             raise typer.Exit(code=2) from e
 
         try:
-            verdict = CriticResult.model_validate(data)
+            verdict = ReviewResult.model_validate(data)
         except Exception as e:
-            log.error("Critic JSON failed CriticResult validation: %s", e)
+            log.error("Reviewer JSON failed ReviewResult validation: %s", e)
             raise typer.Exit(code=2) from e
 
-        print(f"Critic OK, approved={verdict.approved} issues={len(verdict.issues)}")
+        print(f"Reviewer OK, approved={verdict.approved} issues={len(verdict.issues)}")
 
     asyncio.run(_run())
     raise typer.Exit(code=0)

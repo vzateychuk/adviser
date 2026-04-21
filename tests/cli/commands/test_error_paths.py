@@ -2,7 +2,7 @@
 Error-path tests for all CLI commands.
 
 Covers:
-- invalid JSON input to exec-step and critic
+- invalid JSON input to exec-step and review
 - unknown step type in exec-step
 - LLM failure (exit code 2) for every command
 """
@@ -51,16 +51,16 @@ def test_exec_step_unknown_step_type():
     assert r.exit_code == 2
 
 
-def test_critic_invalid_step_json_returns_error():
+def test_review_invalid_step_json_returns_error():
     r = runner.invoke(
-        app, ["--env", "test", "critic", "not-json", json.dumps(_RESULT)]
+        app, ["--env", "test", "review", "not-json", json.dumps(_RESULT)]
     )
     assert r.exit_code != 0
 
 
-def test_critic_invalid_result_json_returns_error():
+def test_review_invalid_result_json_returns_error():
     r = runner.invoke(
-        app, ["--env", "test", "critic", json.dumps(_STEP), "{broken"]
+        app, ["--env", "test", "review", json.dumps(_STEP), "{broken"]
     )
     assert r.exit_code != 0
 
@@ -75,7 +75,7 @@ def _failing_llm() -> MockLLMClient:
     def _fail(req):
         raise LLMError("Simulated LLM failure")
 
-    return MockLLMClient(planner=_fail, executor=_fail, critic=_fail, default=_fail)
+    return MockLLMClient(planner=_fail, executor=_fail, reviewer=_fail, default=_fail)
 
 
 def test_ask_exits_with_error_on_llm_failure(monkeypatch):
@@ -104,10 +104,10 @@ def test_flow_exits_with_error_on_llm_failure(monkeypatch):
     assert r.exit_code == 2
 
 
-def test_critic_exits_with_error_on_llm_failure(monkeypatch):
+def test_review_exits_with_error_on_llm_failure(monkeypatch):
     monkeypatch.setattr("cli.main.create_llm", lambda **kw: _failing_llm())
     r = runner.invoke(
         app,
-        ["--env", "test", "critic", json.dumps(_STEP), json.dumps(_RESULT)],
+        ["--env", "test", "review", json.dumps(_STEP), json.dumps(_RESULT)],
     )
     assert r.exit_code == 2
