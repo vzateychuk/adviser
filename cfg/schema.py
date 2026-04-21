@@ -10,6 +10,8 @@ AgentRole = Literal[
     "planner", "ocr_executor", "critic",
     # Medic Hub-and-Spoke (future)
     "coordinator", "ocr", "dialogue", "web_search", "synthesis", "knowledge_base",
+    # General / debug
+    "default",
 ]
 
 

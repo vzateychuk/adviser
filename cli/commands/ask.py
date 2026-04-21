@@ -22,12 +22,14 @@ def ask(
     log = logging.getLogger("advisor.ask")
 
     llm = ctx.obj["llm"]
+    models_registry = ctx.obj["models_registry"]
+    ask_model = models_registry.models["default"].primary
 
     try:
         response = asyncio.run(
             llm.chat(
                 ChatRequest(
-                    model="default",
+                    model=ask_model,
                     messages=[
                         Message(role="user", content=user_request),
                     ],

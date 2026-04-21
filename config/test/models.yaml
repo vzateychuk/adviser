@@ -1,12 +1,19 @@
 version: "1.0"
 
 models:
+
   planner:
     primary: "mock"
     fallback: "mock"
+
   ocr_executor:
     primary: "mock"
     fallback: "mock"
+
   critic:
+    primary: "mock"
+    fallback: "mock"
+
+  default:
     primary: "mock"
     fallback: "mock"
