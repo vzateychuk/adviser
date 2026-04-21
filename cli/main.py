@@ -51,3 +51,6 @@ def main(
 app.command()(ask)
 app.command()(plan)
 app.command("ocr-flow")(ocr_flow)
+
+if __name__ == "__main__":
+    app()
