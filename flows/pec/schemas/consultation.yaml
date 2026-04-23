@@ -1,0 +1,19 @@
+schema_meta:
+  id: consultation
+  category: consultation
+  title: Universal Consultation Schema
+  intended_use:
+    - physician_consultation
+    - outpatient_note
+selection_hints:
+  aliases:
+    - консультация
+    - physician
+    - note
+critic_rules:
+  must_verify:
+    - dates preserved
+    - surnames preserved
+document: {}
+patient: {}
+consultation: {}

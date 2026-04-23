@@ -5,40 +5,35 @@ import logging
 
 import typer
 
-from tools.prompt import load_role_prompts
-from flows.pec.planner import Planner
+from cli.commands.pec_context import build_initial_context
+from flows.pec.build_pec import build_pec
+from flows.pec.models import run_context_to_yaml
+
 
 
 def plan(
     ctx: typer.Context,
     user_request: str,
 ) -> None:
-    """
-    Debug command: call Planner and print the resulting plan.
+    """Run the planner stage only and print the resulting RunContext as YAML.
 
-    Does NOT execute steps — useful for verifying Planner output for a document.
+    This is useful for debugging triage and schema selection without spending
+    time on extraction or review.
     """
+
     log = logging.getLogger("advisor.plan")
-
-    llm_factory = ctx.obj["llm_factory"]
-    app_cfg = ctx.obj["app_cfg"]
-    models_registry = ctx.obj["models_registry"]
-
-    planner_model = models_registry.models["planner"].primary
-    system_prompt, _ = load_role_prompts("planner", prompts_dir=app_cfg.prompts_dir)
-    planner_llm = llm_factory.for_model(planner_model)
-
-    planner = Planner(llm=planner_llm, prompt=system_prompt)
+    orchestrator = build_pec(
+        llm_factory=ctx.obj["llm_factory"],
+        app_cfg=ctx.obj["app_cfg"],
+        models_registry=ctx.obj["models_registry"],
+    )
+    context = build_initial_context(user_request)
 
     try:
-        result = asyncio.run(planner.plan(user_request))
+        context = asyncio.run(orchestrator.plan(context))
     except Exception as e:
         log.exception("Planner failed: %s", e)
         raise typer.Exit(code=2)
 
-    log.info("Goal: %s", result.goal)
-    log.info("Schema: %s", result.schema_name)
-    for step in result.steps:
-        log.info("  Step %d [%s]: %s", step.id, step.type, step.title)
-
+    typer.echo(run_context_to_yaml(context), nl=False)
     raise typer.Exit(code=0)

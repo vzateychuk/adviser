@@ -1,0 +1,20 @@
+schema_meta:
+  id: diagnostic
+  category: diagnostic
+  title: Universal Diagnostic Schema
+  intended_use:
+    - ultrasound
+    - xray
+    - imaging
+selection_hints:
+  aliases:
+    - узи
+    - xray
+    - ultrasound
+critic_rules:
+  must_verify:
+    - dates preserved
+    - measurements preserved
+document: {}
+patient: {}
+diagnostic: {}

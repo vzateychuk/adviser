@@ -1,0 +1,18 @@
+schema_meta:
+  id: medication_trace
+  category: medication_trace
+  title: Universal Medication Trace Schema
+  intended_use:
+    - prescriptions
+    - medication_history
+selection_hints:
+  aliases:
+    - prescription
+    - medication
+critic_rules:
+  must_verify:
+    - dosages preserved
+    - dates preserved
+document: {}
+patient: {}
+medication_trace: {}

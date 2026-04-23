@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from cfg.schema import AppConfig, ModelsRegistry
+from flows.pec.critic import Critic
+from flows.pec.ocr_executor import OcrExecutor
+from flows.pec.orchestrator import Orchestrator
+from flows.pec.planner import Planner
+from flows.pec.schema_catalog import SchemaCatalog
 from llm.client_factory import LLMClientFactory
 from tools.prompt import load_role_prompts
 
-from flows.pec.orchestrator import Orchestrator
-from flows.pec.planner import Planner
-from flows.pec.critic import Critic
-from flows.pec.ocr_executor import OcrExecutor
 
 
 def build_pec(
@@ -16,23 +17,16 @@ def build_pec(
     app_cfg: AppConfig,
     models_registry: ModelsRegistry,
 ) -> Orchestrator:
-    """
-    Composition root for the OCR PEC flow.
+    """Wire the PEC flow together from config, prompts, models, and schemas.
 
-    Resolves model aliases, loads prompts, wires Planner + OcrExecutor + Critic.
-    Returns a fully constructed Orchestrator with no external dependencies.
+    Centralizing composition keeps the runtime consistent across the full flow
+    and the isolated CLI commands.
     """
 
-    # -------------------------
-    # Resolve model aliases
-    # -------------------------
     planner_model = models_registry.models["planner"].primary
     ocr_model = models_registry.models["ocr_executor"].primary
     critic_model = models_registry.models["critic"].primary
 
-    # -------------------------
-    # Load prompts
-    # -------------------------
     planner_system_prompt, planner_user_template = load_role_prompts(
         "planner", prompts_dir=app_cfg.prompts_dir
     )
@@ -43,38 +37,27 @@ def build_pec(
         "critic", prompts_dir=app_cfg.prompts_dir
     )
 
-    # -------------------------
-    # Planner
-    # -------------------------
-    planner_llm = llm_factory.for_model(planner_model)
-    planner = Planner(
-        llm=planner_llm,
-        prompt=planner_system_prompt,
-    )
+    schema_catalog = SchemaCatalog("flows/pec/schemas")
 
-    # -------------------------
-    # OcrExecutor
-    # -------------------------
-    ocr_llm = llm_factory.for_model(ocr_model)
+    planner = Planner(
+        llm=llm_factory.for_model(planner_model),
+        system_prompt=planner_system_prompt,
+        user_template=planner_user_template,
+        schema_catalog=schema_catalog,
+    )
     executor = OcrExecutor(
-        llm=ocr_llm,
+        llm=llm_factory.for_model(ocr_model),
         system_prompt=ocr_system_prompt,
         user_template=ocr_user_template,
+        schema_catalog=schema_catalog,
     )
-
-    # -------------------------
-    # Critic
-    # -------------------------
-    critic_llm = llm_factory.for_model(critic_model)
     critic = Critic(
-        llm=critic_llm,
+        llm=llm_factory.for_model(critic_model),
         system_prompt=critic_system_prompt,
         user_template=critic_user_template,
+        schema_catalog=schema_catalog,
     )
 
-    # -------------------------
-    # Orchestrator
-    # -------------------------
     max_retries = app_cfg.orchestrator.max_retries if hasattr(app_cfg, "orchestrator") else 3
     return Orchestrator(
         planner=planner,

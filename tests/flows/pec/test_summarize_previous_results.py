@@ -1,5 +1,6 @@
-from flows.pec.renderer import summarize_previous_results
 from flows.pec.models import StepResult
+from flows.pec.renderer import summarize_previous_results
+
 
 
 def test_summarize_previous_results_limits_lines():
