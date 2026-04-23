@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Any, Callable, TypeVar
+
+from pydantic import BaseModel
 
 from llm.types import ChatRequest, ChatResponse
 
 
-MockScenario = Callable[[ChatRequest], ChatResponse]
+T = TypeVar("T", bound=BaseModel)
 
+MockScenario = Callable[[ChatRequest], ChatResponse]
+StructuredMockScenario = Callable[[ChatRequest, type[T]], T]
 
 
 def _last_user(req: ChatRequest) -> str:
     return next((m.content for m in reversed(req.messages) if m.role == "user"), "")
 
+
+# =============================================================================
+# LEGACY TEXT SCENARIOS (for backward compatibility with chat())
+# =============================================================================
 
 
 def planner_mock(req: ChatRequest) -> ChatResponse:
@@ -27,7 +35,7 @@ def planner_mock(req: ChatRequest) -> ChatResponse:
             )
         )
     text = _last_user(req)
-    schema_name = "lab" if any(token in user for token in ["lab", "??????", "blood", "hemoglobin"]) else "consultation"
+    schema_name = "lab" if any(token in user for token in ["lab", "анализ", "blood", "hemoglobin"]) else "consultation"
     return ChatResponse(
         text=(
             "action: PLAN\n"
@@ -47,7 +55,6 @@ def planner_mock(req: ChatRequest) -> ChatResponse:
             "      - all units match the source when present\n"
         )
     )
-
 
 
 def ocr_executor_mock(req: ChatRequest) -> ChatResponse:
@@ -83,11 +90,84 @@ def ocr_executor_mock(req: ChatRequest) -> ChatResponse:
     )
 
 
-
 def critic_mock(req: ChatRequest) -> ChatResponse:
     return ChatResponse(text="approved: true\nsummary: Mock critic approval\nissues: []\n")
 
 
-
 def default_mock(req: ChatRequest) -> ChatResponse:
     return ChatResponse(text=f"[MOCK] {_last_user(req)}")
+
+
+# =============================================================================
+# STRUCTURED SCENARIOS (for chat_structured())
+# =============================================================================
+
+
+def planner_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
+    """Return a pre-built PlannerOutputSchema for structured output tests.
+
+    The response_model is passed so we can construct the correct type.
+    We use lazy imports to avoid circular dependencies with flows.pec.models.
+    """
+    from flows.pec.models import StepType
+    from flows.pec.planner import PlannerOutputSchema, PlanStepSchema
+
+    user = _last_user(req).lower()
+
+    # SKIP scenario
+    if "not medical" in user or "shopping list" in user:
+        result = PlannerOutputSchema(
+            action="SKIP",
+            goal="Input is not a medical document",
+            schema_name=None,
+            assumptions=[],
+            steps=[],
+        )
+        return result  # type: ignore[return-value]
+
+    # PLAN scenario
+    schema_name = "lab" if any(token in user for token in ["lab", "анализ", "blood", "hemoglobin"]) else "consultation"
+
+    result = PlannerOutputSchema(
+        action="PLAN",
+        goal="Extract medical data from document",
+        schema_name=schema_name,
+        assumptions=["deterministic test scenario"],
+        steps=[
+            PlanStepSchema(
+                id=1,
+                title="Extract document data",
+                type=StepType.OCR,
+                input=f"{schema_name}_document",
+                output=schema_name,
+                success_criteria=[
+                    "Preserve all dates exactly as written",
+                    "Preserve all numeric values exactly as written",
+                    "Preserve all measurement units exactly as written",
+                ],
+            )
+        ],
+    )
+    return result  # type: ignore[return-value]
+
+
+def critic_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
+    """Return a pre-built CriticResult for structured output tests."""
+    from flows.pec.models import CriticResult
+
+    result = CriticResult(
+        approved=True,
+        summary="Mock critic approval",
+        issues=[],
+    )
+    return result  # type: ignore[return-value]
+
+
+def default_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
+    """Fallback: construct a minimal valid instance of the response model."""
+    # This is a best-effort fallback for unknown models
+    # Real tests should provide specific scenarios
+    raise NotImplementedError(
+        f"No structured mock scenario for {response_model.__name__}. "
+        "Add a specific scenario or use a text mock with JSON output."
+    )

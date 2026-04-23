@@ -39,11 +39,15 @@ def build_pec(
 
     schema_catalog = SchemaCatalog("flows/pec/schemas")
 
+    # Planner uses instructor retries for structured output validation
+    planner_max_retries = app_cfg.orchestrator.max_retries if hasattr(app_cfg, "orchestrator") else 2
+
     planner = Planner(
         llm=llm_factory.for_model(planner_model),
         system_prompt=planner_system_prompt,
         user_template=planner_user_template,
         schema_catalog=schema_catalog,
+        max_retries=planner_max_retries,
     )
     executor = OcrExecutor(
         llm=llm_factory.for_model(ocr_model),

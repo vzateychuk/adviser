@@ -9,16 +9,24 @@ import yaml
 from pydantic import BaseModel, Field, model_validator
 
 
+# =============================================================================
+# ENUMS
+# =============================================================================
+
+
 class StepType(StrEnum):
+    """Extraction step type."""
     OCR = "ocr"
 
 
 class PlanAction(StrEnum):
+    """Planner decision action."""
     PLAN = "PLAN"
     SKIP = "SKIP"
 
 
 class RunStatus(StrEnum):
+    """Pipeline execution status."""
     PENDING = "pending"
     PLANNED = "planned"
     EXECUTING = "executing"
@@ -27,24 +35,73 @@ class RunStatus(StrEnum):
     SKIPPED = "skipped"
 
 
+# =============================================================================
+# PLAN MODELS
+# =============================================================================
+
+
 class PlanStep(BaseModel):
-    id: int = Field(ge=1)
-    title: str = Field(min_length=1)
-    type: StepType
-    input: str = Field(min_length=1)
-    output: str = Field(min_length=1)
-    success_criteria: list[str] = Field(min_length=1)
+    """Single extraction step in the plan.
+
+    Represents one atomic extraction task that the executor will perform.
+    """
+
+    id: int = Field(
+        ge=1,
+        description="Unique step identifier, starting from 1",
+    )
+    title: str = Field(
+        min_length=1,
+        description="Human-readable step title",
+    )
+    type: StepType = Field(
+        description="Step type: 'ocr' for document extraction",
+    )
+    input: str = Field(
+        min_length=1,
+        description="Input source identifier (e.g., 'document_content')",
+    )
+    output: str = Field(
+        min_length=1,
+        description="Target schema name for extraction output",
+    )
+    success_criteria: list[str] = Field(
+        min_length=1,
+        description="Criteria the critic will verify against",
+    )
 
 
 class PlanResult(BaseModel):
-    goal: str = ""
-    action: PlanAction = PlanAction.PLAN
-    schema_name: str | None = None
-    assumptions: list[str] = Field(default_factory=list)
-    steps: list[PlanStep] = Field(default_factory=list)
+    """Result of the planning phase.
+
+    Contains the extraction goal, target schema, and steps to execute.
+    This is the contract between Planner and Executor.
+    """
+
+    goal: str = Field(
+        default="",
+        description="Brief description of the extraction goal",
+    )
+    action: PlanAction = Field(
+        default=PlanAction.PLAN,
+        description="PLAN to process, SKIP to reject document",
+    )
+    schema_name: str | None = Field(
+        default=None,
+        description="Target schema ID from catalog (null for SKIP)",
+    )
+    assumptions: list[str] = Field(
+        default_factory=list,
+        description="Assumptions made during planning",
+    )
+    steps: list[PlanStep] = Field(
+        default_factory=list,
+        description="Extraction steps (empty for SKIP)",
+    )
 
     @model_validator(mode="after")
     def validate_shape(self) -> "PlanResult":
+        """Ensure PLAN has required fields and SKIP has none."""
         if self.action == PlanAction.PLAN:
             if not self.goal.strip():
                 raise ValueError("goal must not be empty when action is PLAN")
@@ -58,53 +115,176 @@ class PlanResult(BaseModel):
         return self
 
 
+# =============================================================================
+# EXECUTION MODELS
+# =============================================================================
+
+
 class StepResult(BaseModel):
-    step_id: int = Field(ge=1)
-    executor: str = Field(min_length=1)
-    content: str = Field(min_length=1)
-    assumptions: list[str] = Field(default_factory=list)
+    """Result of executing a single step.
+
+    Contains the extracted content and any assumptions made by the executor.
+    """
+
+    step_id: int = Field(
+        ge=1,
+        description="ID of the step that produced this result",
+    )
+    executor: str = Field(
+        min_length=1,
+        description="Executor type that produced this result (e.g., 'ocr')",
+    )
+    content: str = Field(
+        min_length=1,
+        description="Extracted content (typically YAML)",
+    )
+    assumptions: list[str] = Field(
+        default_factory=list,
+        description="Assumptions made during extraction",
+    )
+
+
+# =============================================================================
+# CRITIC MODELS (structured output schema)
+# =============================================================================
 
 
 class CriticIssue(BaseModel):
-    severity: Literal["low", "medium", "high"]
-    description: str = Field(min_length=1)
-    suggestion: str = Field(min_length=1)
+    """Single issue found by the critic.
+
+    Used for both structured LLM output and internal representation.
+    """
+
+    severity: Literal["low", "medium", "high"] = Field(
+        description="Issue severity: low (minor), medium (should fix), high (must fix)",
+    )
+    description: str = Field(
+        min_length=1,
+        description="Clear description of what's wrong",
+    )
+    suggestion: str = Field(
+        min_length=1,
+        description="Actionable suggestion for fixing the issue",
+    )
 
 
 class CriticResult(BaseModel):
-    approved: bool
-    issues: list[CriticIssue] = Field(default_factory=list)
-    summary: str = Field(min_length=1)
+    """Result of the critic review.
+
+    Indicates whether the extraction is approved and lists any issues found.
+    This schema is used directly with instructor for structured outputs.
+    """
+
+    approved: bool = Field(
+        description="True if extraction meets all criteria, False if issues found",
+    )
+    issues: list[CriticIssue] = Field(
+        default_factory=list,
+        description="List of issues found (empty when approved=True)",
+    )
+    summary: str = Field(
+        min_length=1,
+        description="Brief summary of the review verdict",
+    )
 
     @model_validator(mode="after")
     def check_issues_on_reject(self) -> "CriticResult":
+        """Ensure rejected results have at least one issue."""
         if not self.approved and not self.issues:
             raise ValueError("issues must not be empty when approved is False")
         return self
 
 
+# =============================================================================
+# RUN CONTEXT (shared state across pipeline)
+# =============================================================================
+
+
 @dataclass
 class RunContext:
+    """Shared state passed through the PEC pipeline.
+
+    RunContext is the single source of truth for:
+    - Input: user_request and document_content
+    - Planning: plan and active_schema
+    - Execution: steps_results
+    - Review: critic_feedback and status
+
+    Each stage reads what it needs and writes its output to the context.
+    The Orchestrator manages transitions between stages.
+
+    Design notes:
+    - Dataclass (not Pydantic) because this is internal state, not LLM I/O
+    - Mutable: stages update fields in place
+    - Serializable: can be dumped to YAML for debugging and CLI handoff
+    """
+
+    # Input (immutable after creation)
     user_request: str
+    """Original user request or document path."""
+
     document_content: str
+    """Full text content of the document to process."""
+
+    # Planning output
     plan: PlanResult | None = None
+    """Planner output: goal, schema, and extraction steps."""
+
     active_schema: str | None = None
+    """Currently active schema ID (derived from plan)."""
+
+    # Execution output
     steps_results: list[StepResult] = field(default_factory=list)
+    """Results from executed steps, in order."""
+
+    # Review state
     critic_feedback: list[CriticIssue] = field(default_factory=list)
+    """Current critic feedback (cleared between retries)."""
+
     status: RunStatus = RunStatus.PENDING
+    """Current pipeline status."""
+
+
+# =============================================================================
+# FINAL OUTPUT
+# =============================================================================
 
 
 class OcrResult(BaseModel):
-    document_path: str
-    schema_name: str | None
-    yaml_content: str
-    step_results: list[StepResult]
-    retry_count: int
-    status: RunStatus
+    """Final result of the OCR pipeline.
 
+    This is the top-level output returned to callers after the full
+    PEC pipeline completes (or fails/skips).
+    """
+
+    document_path: str = Field(
+        description="Path or identifier of the processed document",
+    )
+    schema_name: str | None = Field(
+        description="Schema used for extraction (null if skipped)",
+    )
+    yaml_content: str = Field(
+        description="Extracted data as YAML (empty if skipped/failed)",
+    )
+    step_results: list[StepResult] = Field(
+        description="Results from each extraction step",
+    )
+    retry_count: int = Field(
+        ge=0,
+        description="Total retries across all steps",
+    )
+    status: RunStatus = Field(
+        description="Final pipeline status",
+    )
+
+
+# =============================================================================
+# SERIALIZATION HELPERS
+# =============================================================================
 
 
 def _to_plain(value: Any) -> Any:
+    """Convert nested Pydantic/dataclass/enum to plain dict/list."""
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     if isinstance(value, StrEnum):
@@ -118,8 +298,8 @@ def _to_plain(value: Any) -> Any:
     return value
 
 
-
 def run_context_to_dict(context: RunContext) -> dict[str, Any]:
+    """Convert RunContext to a plain dict for serialization."""
     return {
         "user_request": context.user_request,
         "document_content": context.document_content,
@@ -131,8 +311,8 @@ def run_context_to_dict(context: RunContext) -> dict[str, Any]:
     }
 
 
-
 def run_context_to_yaml(context: RunContext) -> str:
+    """Serialize RunContext to YAML for CLI output and debugging."""
     return yaml.safe_dump(
         run_context_to_dict(context),
         allow_unicode=True,
@@ -140,8 +320,8 @@ def run_context_to_yaml(context: RunContext) -> str:
     )
 
 
-
 def run_context_from_dict(data: dict[str, Any]) -> RunContext:
+    """Reconstruct RunContext from a plain dict."""
     return RunContext(
         user_request=data.get("user_request", ""),
         document_content=data.get("document_content", ""),
@@ -153,14 +333,14 @@ def run_context_from_dict(data: dict[str, Any]) -> RunContext:
     )
 
 
-
 def run_context_from_yaml(text: str) -> RunContext:
+    """Parse RunContext from YAML string."""
     data = yaml.safe_load(text) or {}
     if not isinstance(data, dict):
         raise ValueError("RunContext YAML must deserialize to a mapping")
     return run_context_from_dict(data)
 
 
-
 def load_run_context(path: str | Path) -> RunContext:
+    """Load RunContext from a YAML file."""
     return run_context_from_yaml(Path(path).read_text(encoding="utf-8"))
