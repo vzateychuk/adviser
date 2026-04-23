@@ -4,7 +4,7 @@ import pytest
 
 from flows.pec.planner import Planner
 from flows.pec.schema_catalog import SchemaCatalog
-from llm.types import ChatResponse
+from common.types import ChatResponse
 
 
 class _FakeLLM:

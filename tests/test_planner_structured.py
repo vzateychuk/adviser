@@ -7,7 +7,7 @@ from flows.pec.models import PlanAction, RunStatus
 from flows.pec.planner import Planner, PlannerOutputSchema, PlanStepSchema, StepType
 from flows.pec.schema_catalog import SchemaCatalog
 from llm.mock import MockLLMClient
-from llm.types import ChatRequest
+from common.types import ChatRequest
 
 
 # =============================================================================

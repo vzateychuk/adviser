@@ -1,10 +1,9 @@
 import asyncio
 
-from cfg.schema import AppConfig
+from common.types import AppConfig, ChatRequest, Message
 from llm.factory import create_llm_factory
 from llm.mock import MockLLMClient
 from llm.openai_client import OpenAICompatibleClient
-from llm.types import ChatRequest, Message
 
 
 def test_create_llm_factory_returns_openai_client_for_openai_provider():

@@ -7,7 +7,7 @@ from flows.pec.renderer import render_critic_template
 from flows.pec.schema_catalog import SchemaCatalog
 from flows.pec.yaml_utils import load_llm_yaml
 from llm.protocol import LLMClient
-from llm.types import ChatRequest, Message
+from common.types import ChatRequest, Message
 
 log = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Protocol, TypeVar, overload
 
 from pydantic import BaseModel
 
-from llm.types import ChatRequest, ChatResponse
+from common.types import ChatRequest, ChatResponse
 
 
 T = TypeVar("T", bound=BaseModel)

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import llm.openai_client as openai_client_module
 
 from llm.openai_client import OpenAICompatibleClient
-from llm.types import ChatRequest, Message
+from common.types import ChatRequest, Message
 
 
 def test_openai_client_uses_bound_model_alias(monkeypatch):

@@ -9,7 +9,7 @@ from pydantic import BaseModel, ValidationError
 
 from llm.errors import LLMError, StructuredOutputError
 from llm.protocol import LLMClient
-from llm.types import ChatRequest, ChatResponse
+from common.types import ChatRequest, ChatResponse
 
 log = logging.getLogger(__name__)
 

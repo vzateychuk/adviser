@@ -4,7 +4,7 @@ from typing import Any, Callable, TypeVar
 
 from pydantic import BaseModel
 
-from llm.types import ChatRequest, ChatResponse
+from common.types import ChatRequest, ChatResponse
 
 
 T = TypeVar("T", bound=BaseModel)

@@ -10,7 +10,7 @@ from flows.pec.renderer import render_planner_prompt
 from flows.pec.schema_catalog import SchemaCatalog
 from llm.errors import StructuredOutputError
 from llm.protocol import LLMClient
-from llm.types import ChatRequest, Message
+from common.types import ChatRequest, Message
 
 log = logging.getLogger(__name__)
 
@@ -48,12 +48,10 @@ class PlanStepSchema(BaseModel):
         description="Must match schema_name exactly (e.g., 'lab', 'consultation')",
     )
     success_criteria: list[str] = Field(
-        min_length=1,
+        default_factory=list,
         description=(
-            "Verification criteria. Must include: "
-            "'Preserve all dates exactly as written', "
-            "'Preserve all numeric values exactly as written', "
-            "'Preserve all measurement units exactly as written'"
+            "Verification criteria for the Critic. "
+            "If empty, defaults will be loaded from the schema catalog."
         ),
     )
 
@@ -140,35 +138,6 @@ class PlannerOutputSchema(BaseModel):
 
 
 # =============================================================================
-# DEFAULT SUCCESS CRITERIA (injected when LLM omits them)
-# =============================================================================
-
-_DEFAULT_SUCCESS_CRITERIA: dict[str, list[str]] = {
-    "lab": [
-        "Preserve all dates exactly as written.",
-        "Preserve all numeric values exactly as written.",
-        "Preserve all measurement units exactly as written.",
-        "Preserve analyte names and reference ranges exactly as written.",
-    ],
-    "diagnostic": [
-        "Preserve all dates exactly as written.",
-        "Preserve all measurements exactly as written.",
-        "Preserve all conclusions and findings exactly as written.",
-    ],
-    "consultation": [
-        "Preserve all dates exactly as written.",
-        "Preserve all physician conclusions exactly as written.",
-        "Preserve all diagnoses, recommendations, and medications exactly as written.",
-    ],
-    "medication_trace": [
-        "Preserve all dates exactly as written.",
-        "Preserve all medication names and dosages exactly as written.",
-        "Preserve all frequency and duration information exactly as written.",
-    ],
-}
-
-
-# =============================================================================
 # PLANNER
 # =============================================================================
 
@@ -249,13 +218,6 @@ class Planner:
         # Post-process: normalize schema name and apply defaults
         plan = self._post_process(output, document_content=document_content)
 
-        # Validate schema selection
-        if plan.schema_name and not self._schema_catalog.has(plan.schema_name):
-            raise ValueError(
-                f"Planner selected unknown schema: {plan.schema_name!r}. "
-                f"Allowed: {', '.join(self._schema_catalog.ids())}"
-            )
-
         log.info(
             "Planner result: action=%s, schema=%s, steps=%d",
             plan.action.value,
@@ -293,14 +255,14 @@ class Planner:
                 f"Allowed: {', '.join(self._schema_catalog.ids())}"
             )
 
+        # Get default criteria from schema catalog
+        schema_def = self._schema_catalog.get(schema_name)
+        default_criteria = schema_def.critic_rules or ["Preserve all values exactly as written."]
+
         # Process steps with default criteria injection
         steps: list[PlanStep] = []
         for step in output.steps:
-            criteria = step.success_criteria
-            if not criteria:
-                criteria = list(_DEFAULT_SUCCESS_CRITERIA.get(schema_name, [])) or [
-                    "Preserve all visible values exactly as written."
-                ]
+            criteria = step.success_criteria if step.success_criteria else default_criteria
 
             steps.append(
                 PlanStep(
@@ -313,19 +275,12 @@ class Planner:
                 )
             )
 
-        # Generate fallback step if none provided
+        # Steps are required for PLAN action
         if not steps:
-            steps = [
-                PlanStep(
-                    id=1,
-                    title=f"Extract {schema_name} data",
-                    type=StepType.OCR,
-                    input="document_content",
-                    output=schema_name,
-                    success_criteria=list(_DEFAULT_SUCCESS_CRITERIA.get(schema_name, []))
-                    or ["Preserve all visible values exactly as written."],
-                )
-            ]
+            raise ValueError(
+                f"Planner returned action=PLAN but no steps. "
+                f"This indicates an LLM error. schema_name={schema_name!r}"
+            )
 
         return PlanResult(
             goal=output.goal,

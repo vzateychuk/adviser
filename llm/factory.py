@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cfg.schema import AppConfig
+from common.types import AppConfig
 from llm.client_factory import LLMClientFactory
 from llm.mock import MockLLMClient
 from llm.openai_client import OpenAICompatibleClient

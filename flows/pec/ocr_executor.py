@@ -6,7 +6,7 @@ from flows.pec.models import RunContext, StepResult
 from flows.pec.renderer import format_critic_feedback_items, render_step_template, summarize_previous_results
 from flows.pec.schema_catalog import SchemaCatalog
 from llm.protocol import LLMClient
-from llm.types import ChatRequest, Message
+from common.types import ChatRequest, Message
 
 log = logging.getLogger(__name__)
 

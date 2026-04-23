@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cfg.schema import AppConfig, ModelsRegistry
+from common.types import AppConfig, ModelsRegistry
 from flows.pec.critic import Critic
 from flows.pec.ocr_executor import OcrExecutor
 from flows.pec.orchestrator import Orchestrator

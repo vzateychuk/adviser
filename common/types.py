@@ -1,8 +1,39 @@
 from __future__ import annotations
 
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Callable
 from pathlib import Path
+
+
+Role = Literal["system", "user", "assistant"]
+
+
+class Message(BaseModel):
+    role: Role
+    content: str
+
+
+class TransportMeta(BaseModel):
+    request_id: str | None = None
+    trace_id: str | None = None
+    debug: dict[str, str] | None = None
+
+
+class ChatRequest(BaseModel):
+    messages: list[Message]
+    temperature: float | None = None
+    max_tokens: int | None = None
+
+    # transport/debug only (must not influence orchestration logic)
+    meta: TransportMeta | None = None
+
+
+class ChatResponse(BaseModel):
+    text: str
+    model_alias: str = ""
+
+
+MockScenario = Callable[[ChatRequest], ChatResponse]
 
 
 AgentRole = Literal[
@@ -13,6 +44,8 @@ AgentRole = Literal[
     # General / debug
     "default",
 ]
+
+LLMProvider = Literal["openai", "anthropic", "mock"]
 
 
 class RoleModelChoice(BaseModel):
@@ -33,7 +66,6 @@ class ModelsRegistry(BaseModel):
     version: str = "1.0"
     models: dict[AgentRole, RoleModelChoice]
 
-LLMProvider = Literal["openai", "anthropic", "mock"]
 
 class LLMConfig(BaseModel):
     """
@@ -44,12 +76,15 @@ class LLMConfig(BaseModel):
       - anthropic: Claude SDK/API (future)
       - mock: deterministic fake client for tests
     """
+
     provider: LLMProvider
     base_url: str | None = None
+
 
 class DBConfig(BaseModel):
     """SQLite database configuration."""
     path: Path
+
 
 class OrchestratorConfig(BaseModel):
     """PEC orchestrator runtime settings."""

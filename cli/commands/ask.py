@@ -4,7 +4,7 @@ import asyncio
 import logging
 import typer
 
-from llm.types import ChatRequest, Message
+from common.types import ChatRequest, Message
 
 
 def ask(

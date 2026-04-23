@@ -6,7 +6,7 @@ from typing import Any, Callable, TypeVar
 from pydantic import BaseModel
 
 from llm.errors import StructuredOutputError
-from llm.types import ChatRequest, ChatResponse
+from common.types import ChatRequest, ChatResponse
 
 log = logging.getLogger(__name__)
 

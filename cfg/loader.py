@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from cfg.schema import AppConfig, ModelsRegistry
+from common.types import AppConfig, ModelsRegistry
 
 
 def _read_yaml(path: Path) -> dict:
