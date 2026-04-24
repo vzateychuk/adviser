@@ -123,7 +123,7 @@ class PlanResult(BaseModel):
 class StepResult(BaseModel):
     """Result of executing a single step.
 
-    Contains the extracted content and any assumptions made by the executor.
+    Contains the extracted medical document and any assumptions made by the executor.
     """
 
     step_id: int = Field(
@@ -134,9 +134,9 @@ class StepResult(BaseModel):
         min_length=1,
         description="Executor type that produced this result (e.g., 'ocr')",
     )
-    content: str = Field(
-        min_length=1,
-        description="Extracted content (typically YAML)",
+    doc: "MedicalDoc | None" = Field(
+        default=None,
+        description="Typed medical extraction (None only for skipped/failed steps)",
     )
     assumptions: list[str] = Field(
         default_factory=list,
@@ -196,6 +196,255 @@ class CriticResult(BaseModel):
 
 
 # =============================================================================
+# MEDICAL EXTRACTION MODELS
+# =============================================================================
+
+
+class DocumentInfo(BaseModel):
+    """Метаданные документа."""
+
+    date: str | None = Field(
+        default=None,
+        description="Дата документа в формате как в источнике (например, '2020-02-09')",
+    )
+    organization: str | None = Field(
+        default=None,
+        description="Название медицинского учреждения",
+    )
+    doctor: str | None = Field(
+        default=None,
+        description="ФИО врача",
+    )
+    specialty: str | None = Field(
+        default=None,
+        description="Специальность врача (например, 'УЗИ-диагностика', 'Терапевт')",
+    )
+
+
+class PatientInfo(BaseModel):
+    """Информация о пациенте."""
+
+    full_name: str | None = Field(
+        default=None,
+        description="Полное ФИО пациента",
+    )
+    birth_date: str | None = Field(
+        default=None,
+        description="Дата рождения в формате как в источнике",
+    )
+    gender: Literal["male", "female", "unknown"] | None = Field(
+        default=None,
+        description="Пол пациента",
+    )
+
+
+class Measurement(BaseModel):
+    """Универсальное измерение.
+
+    Используется для:
+    - Лабораторных показателей (гемоглобин, глюкоза)
+    - Измерений на УЗИ/КТ/МРТ (размеры органов)
+    - Физикальных данных (АД, пульс, температура)
+    """
+
+    name: str = Field(
+        description="Название показателя (например, 'Гемоглобин', 'Толщина стенки')",
+    )
+    value: str = Field(
+        description="Значение как в документе (например, '140', '12', '120/80')",
+    )
+    unit: str | None = Field(
+        default=None,
+        description="Единица измерения (например, 'г/л', 'мм', 'мм рт.ст.')",
+    )
+    reference_range: str | None = Field(
+        default=None,
+        description="Референсный диапазон (например, '120-160', '< 5.5')",
+    )
+    status: Literal["normal", "low", "high", "abnormal", "unknown"] = Field(
+        default="unknown",
+        description="Статус относительно нормы",
+    )
+    notes: str | None = Field(
+        default=None,
+        description="Дополнительные комментарии к показателю",
+    )
+
+
+class Medication(BaseModel):
+    """Информация о препарате."""
+
+    name: str = Field(
+        description="Название препарата",
+    )
+    dosage: str | None = Field(
+        default=None,
+        description="Дозировка (например, '500 мг', '10 мл')",
+    )
+    frequency: str | None = Field(
+        default=None,
+        description="Частота приёма (например, '2 раза в день', 'утром натощак')",
+    )
+    duration: str | None = Field(
+        default=None,
+        description="Длительность курса (например, '14 дней', '1 месяц')",
+    )
+    route: str | None = Field(
+        default=None,
+        description="Способ приёма (например, 'перорально', 'в/м', 'наружно')",
+    )
+
+
+class MedicalDoc(BaseModel):
+    """Универсальная схема медицинского документа.
+
+    Единая структура для всех типов документов:
+    - lab: лабораторные анализы
+    - diagnostic: УЗИ, рентген, КТ, МРТ
+    - consultation: консультации врачей
+    - medication_trace: назначения, рецепты
+
+    LLM заполняет релевантные поля, остальные остаются пустыми.
+    """
+
+    # === ИДЕНТИФИКАЦИЯ ===
+    schema_id: Literal["lab", "diagnostic", "consultation", "medication_trace"] = Field(
+        description="Тип документа, определённый Planner'ом",
+    )
+
+    # === ОБЩИЕ СЕКЦИИ ===
+    document: DocumentInfo = Field(
+        default_factory=DocumentInfo,
+        description="Метаданные документа",
+    )
+    patient: PatientInfo = Field(
+        default_factory=PatientInfo,
+        description="Информация о пациенте",
+    )
+
+    # === ИЗМЕРЕНИЯ (lab, diagnostic) ===
+    measurements: list[Measurement] = Field(
+        default_factory=list,
+        description=(
+            "Числовые измерения: "
+            "для lab — анализы (гемоглобин, глюкоза); "
+            "для diagnostic — размеры органов, объёмы"
+        ),
+    )
+
+    # === ТЕКСТОВЫЕ НАХОДКИ (diagnostic, consultation) ===
+    findings: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Текстовые находки и наблюдения: "
+            "описания на УЗИ, результаты осмотра, жалобы"
+        ),
+    )
+
+    # === ДИАГНОЗЫ (consultation, diagnostic) ===
+    diagnoses: list[str] = Field(
+        default_factory=list,
+        description="Диагнозы (основной и сопутствующие)",
+    )
+
+    # === РЕКОМЕНДАЦИИ (все типы) ===
+    recommendations: list[str] = Field(
+        default_factory=list,
+        description="Рекомендации врача, назначения на обследования",
+    )
+
+    # === ПРЕПАРАТЫ (medication_trace, consultation) ===
+    medications: list[Medication] = Field(
+        default_factory=list,
+        description="Назначенные или принимаемые препараты",
+    )
+
+    # === ЗАКЛЮЧЕНИЕ ===
+    conclusion: str | None = Field(
+        default=None,
+        description="Общее заключение документа",
+    )
+
+    # === ДОПОЛНИТЕЛЬНО ===
+    procedure_name: str | None = Field(
+        default=None,
+        description="Название процедуры/исследования (для diagnostic)",
+    )
+    notes: str | None = Field(
+        default=None,
+        description="Дополнительные заметки, не вошедшие в другие поля",
+    )
+
+    def merge(self, other: "MedicalDoc") -> "MedicalDoc":
+        """Incremental merge. self = накопленный doc, other = результат нового шага.
+        Возвращает новый объект, self/other не мутируются.
+        """
+        if self.schema_id != other.schema_id:
+            log.warning(
+                "Schema ID mismatch in MedicalDoc.merge: self=%s, other=%s, using self",
+                self.schema_id, other.schema_id,
+            )
+
+        def _merge_scalar_fields(base: "DocumentInfo | PatientInfo | None", new: "DocumentInfo | PatientInfo | None", model_cls: type) -> "DocumentInfo | PatientInfo | None":
+            """Per-field merge двух Pydantic-объектов: new wins if non-null, else base."""
+            if base is None and new is None:
+                return None
+            if base is None:
+                return new
+            if new is None:
+                return base
+            merged = {}
+            for field_name in model_cls.model_fields:
+                base_val = getattr(base, field_name)
+                new_val = getattr(new, field_name)
+                merged[field_name] = new_val if new_val is not None else base_val
+            return model_cls(**merged)
+
+        def _dedup_strings(items: list[str]) -> list[str]:
+            """Сохранить порядок, убрать дубликаты по string-equality."""
+            seen: set[str] = set()
+            out: list[str] = []
+            for item in items:
+                if item not in seen:
+                    seen.add(item)
+                    out.append(item)
+            return out
+
+        def _dedup_by_name(items: list["Measurement | Medication"], key_fn) -> list["Measurement | Medication"]:
+            """Дедуп по case-insensitive name, 'later wins' при конфликте."""
+            index: dict[str, int] = {}
+            out: list["Measurement | Medication"] = []
+            for item in items:
+                name_key = key_fn(item).strip().lower()
+                if name_key in index:
+                    out[index[name_key]] = item
+                else:
+                    index[name_key] = len(out)
+                    out.append(item)
+            return out
+
+        # notes: конкатенация через \n\n если оба non-null
+        if self.notes and other.notes:
+            merged_notes = f"{self.notes}\n\n{other.notes}"
+        else:
+            merged_notes = other.notes if other.notes is not None else self.notes
+
+        return MedicalDoc(
+            schema_id=self.schema_id,
+            document=_merge_scalar_fields(self.document, other.document, DocumentInfo),
+            patient=_merge_scalar_fields(self.patient, other.patient, PatientInfo),
+            procedure_name=other.procedure_name if other.procedure_name is not None else self.procedure_name,
+            conclusion=other.conclusion if other.conclusion is not None else self.conclusion,
+            notes=merged_notes,
+            findings=_dedup_strings(self.findings + other.findings),
+            diagnoses=_dedup_strings(self.diagnoses + other.diagnoses),
+            recommendations=_dedup_strings(self.recommendations + other.recommendations),
+            measurements=_dedup_by_name(self.measurements + other.measurements, lambda m: m.name),
+            medications=_dedup_by_name(self.medications + other.medications, lambda m: m.name),
+        )
+
+
+# =============================================================================
 # RUN CONTEXT (shared state across pipeline)
 # =============================================================================
 
@@ -236,6 +485,9 @@ class RunContext:
     # Execution output
     steps_results: list[StepResult] = field(default_factory=list)
     """Results from executed steps, in order."""
+
+    doc: "MedicalDoc | None" = None
+    """Incremental merged medical extraction (accumulated after each step)."""
 
     # Review state
     critic_feedback: list[CriticIssue] = field(default_factory=list)
@@ -306,6 +558,7 @@ def run_context_to_dict(context: RunContext) -> dict[str, Any]:
         "plan": _to_plain(context.plan),
         "active_schema": context.active_schema,
         "steps_results": _to_plain(context.steps_results),
+        "doc": _to_plain(context.doc),
         "critic_feedback": _to_plain(context.critic_feedback),
         "status": context.status.value,
     }
@@ -328,6 +581,7 @@ def run_context_from_dict(data: dict[str, Any]) -> RunContext:
         plan=PlanResult.model_validate(data["plan"]) if data.get("plan") else None,
         active_schema=data.get("active_schema"),
         steps_results=[StepResult.model_validate(item) for item in data.get("steps_results", [])],
+        doc=MedicalDoc.model_validate(data["doc"]) if data.get("doc") else None,
         critic_feedback=[CriticIssue.model_validate(item) for item in data.get("critic_feedback", [])],
         status=RunStatus(data.get("status", RunStatus.PENDING.value)),
     )
