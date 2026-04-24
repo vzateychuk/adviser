@@ -108,7 +108,6 @@ def planner(mock_llm: MockLLMClient, schema_catalog: SchemaCatalog) -> Planner:
         system_prompt="Role: Planner\nYou are a medical document planner.",
         user_template="Document: {{DOCUMENT_CONTENT}}\nCatalog: {{SCHEMA_CATALOG}}",
         schema_catalog=schema_catalog,
-        max_retries=1,
     )
 
 

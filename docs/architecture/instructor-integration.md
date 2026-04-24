@@ -192,4 +192,4 @@ This bypasses all parsing and validation, making tests fast and deterministic.
 | `llm/factory.py` | Wire structured scenarios |
 | `flows/pec/planner.py` | Full refactor to structured outputs |
 | `flows/pec/models.py` | Added Field descriptions |
-| `flows/pec/build_pec.py` | Pass max_retries to Planner |
+| `flows/pec/build_pec.py` | Wire Planner with schema catalog |

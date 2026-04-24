@@ -161,13 +161,11 @@ class Planner:
         system_prompt: str,
         user_template: str,
         schema_catalog: SchemaCatalog,
-        max_retries: int = 2,
     ):
         self._llm = llm
         self._system_prompt = system_prompt
         self._user_template = user_template
         self._schema_catalog = schema_catalog
-        self._max_retries = max_retries
 
     async def plan(self, *, user_request: str, document_content: str) -> PlanResult:
         """Generate an extraction plan using structured LLM output.
@@ -207,7 +205,6 @@ class Planner:
                     ],
                 ),
                 response_model=PlannerOutputSchema,
-                max_retries=self._max_retries,
             )
         except StructuredOutputError as e:
             log.error("Planner failed to produce valid output: %s", e)
