@@ -210,20 +210,16 @@ class Planner:
             log.error("Planner failed to produce valid output: %s", e)
             raise
 
-        log.debug("Planner raw output: action=%s, schema=%s", output.action, output.schema_name)
+        log.debug("Planner raw output: action=%s, schema=%s, steps=%d", output.action, output.schema_name, len(output.steps))
 
         # Post-process: normalize schema name and apply defaults
-        plan = self._post_process(output, document_content=document_content)
+        plan = self._post_process(output)
 
-        log.info(
-            "Planner result: action=%s, schema=%s, steps=%d",
-            plan.action.value,
-            plan.schema_name,
-            len(plan.steps),
-        )
+        steps_summary = ", ".join(f"{step.id}: {step.title}" for step in plan.steps)
+        log.info("Planner result: action=%s, schema=%s, steps=%s",  plan.action.value, plan.schema_name, steps_summary,)
         return plan
 
-    def _post_process(self, output: PlannerOutputSchema, *, document_content: str) -> PlanResult:
+    def _post_process(self, output: PlannerOutputSchema) -> PlanResult:
         """Apply post-processing repairs to the structured output.
 
         Even with structured outputs, we still need some normalization:
@@ -254,12 +250,11 @@ class Planner:
 
         # Get default criteria from schema catalog
         schema_def = self._schema_catalog.get(schema_name)
-        default_criteria = schema_def.critic_rules or ["Preserve all values exactly as written."]
 
         # Process steps with default criteria injection
         steps: list[PlanStep] = []
         for step in output.steps:
-            criteria = step.success_criteria if step.success_criteria else default_criteria
+            criteria = step.success_criteria if step.success_criteria else schema_def.critic_rules
 
             steps.append(
                 PlanStep(

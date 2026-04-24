@@ -60,7 +60,7 @@ class Orchestrator:
             status=context.status,
         )
 
-    async def plan(self, context: RunContext) -> RunContext:
+    async def plan(self, ctx: RunContext) -> RunContext:
         """Populate the run context with planner output and derived schema state.
 
         This is split out so the CLI can run planning in isolation while still
@@ -68,16 +68,17 @@ class Orchestrator:
         """
 
         plan = await self._planner.plan(
-            user_request=context.user_request,
-            document_content=context.document_content,
+            user_request=ctx.user_request,
+            document_content=ctx.document_content,
         )
-        context.plan = plan
-        context.active_schema = plan.schema_name
-        context.status = RunStatus.SKIPPED if plan.action == PlanAction.SKIP else RunStatus.PLANNED
-        return context
+        ctx.plan = plan
+        ctx.active_schema = plan.schema_name
+        ctx.status = RunStatus.SKIPPED if plan.action == PlanAction.SKIP else RunStatus.PLANNED
+        return ctx
 
     async def execute(self, context: RunContext) -> int:
-        """Execute all planned steps and advance the run toward completion.
+        """
+        Execute all planned steps and advance the run toward completion.
 
         Keeping this separate from planning makes debug workflows easier and lets
         isolated CLI commands reuse the exact same execution policy.
