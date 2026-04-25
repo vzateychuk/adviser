@@ -151,6 +151,67 @@ def planner_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
     return result  # type: ignore[return-value]
 
 
+def executor_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
+    """Return a pre-built MedicalDoc for structured output tests.
+
+    Determines schema_id from request content and returns sample data.
+    """
+    from flows.pec.models import (
+        DocumentInfo, MedicalDoc, Measurement, Medication, PatientInfo,
+    )
+
+    user = _last_user(req).lower()
+
+    # Determine schema_id from content
+    if any(token in user for token in ["lab", "анализ", "blood", "hemoglobin", "glucose"]):
+        schema_id = "lab"
+        measurements = [
+            Measurement(name="Hemoglobin", value="140", unit="g/L", status="normal"),
+            Measurement(name="Glucose", value="5.2", unit="mmol/L", status="normal"),
+        ]
+        findings = []
+        diagnoses = []
+    elif any(token in user for token in ["diagnostic", "ultrasound", "узи", "imaging"]):
+        schema_id = "diagnostic"
+        measurements = [Measurement(name="Liver size", value="120", unit="mm", status="normal")]
+        findings = ["Liver enlarged", "No focal lesions"]
+        diagnoses = []
+    elif any(token in user for token in ["medication", "medication_trace", "рецепт"]):
+        schema_id = "medication_trace"
+        measurements = []
+        findings = []
+        diagnoses = []
+    else:
+        schema_id = "consultation"
+        measurements = []
+        findings = ["Patient reports fatigue", "Physical exam unremarkable"]
+        diagnoses = ["Fatigue, etiology TBD"]
+
+    result = MedicalDoc(
+        schema_id=schema_id,
+        document=DocumentInfo(
+            date="2024-01-01",
+            organization="Mock Medical Center",
+            doctor="Dr. Mock",
+        ),
+        patient=PatientInfo(
+            full_name="Mock Patient",
+            birth_date="1980-05-15",
+            gender="unknown",
+        ),
+        measurements=measurements,
+        findings=findings,
+        diagnoses=diagnoses,
+        recommendations=["Follow-up in 2 weeks"],
+        medications=[
+            Medication(name="Aspirin", dosage="500mg", frequency="once daily")
+        ] if schema_id in ["consultation", "medication_trace"] else [],
+        procedure_name="Mock Procedure" if schema_id == "diagnostic" else None,
+        conclusion="Mock conclusion based on extraction",
+    )
+    return result  # type: ignore[return-value]
+
+
 def critic_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
     """Return a pre-built CriticResult for structured output tests."""
     from flows.pec.models import CriticResult

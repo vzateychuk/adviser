@@ -40,5 +40,5 @@ def ocr_flow(
         log.exception("OCR flow failed: %s", e)
         raise typer.Exit(code=2)
 
-    typer.echo(result.yaml_content)
+    typer.echo(result.context)
     raise typer.Exit(code=0)

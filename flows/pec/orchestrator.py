@@ -37,27 +37,26 @@ class Orchestrator:
         handle planning, extraction, review, retries, and final result assembly.
         """
 
-        context = RunContext(user_request=file_path, document_content=doc_content)
-        context = await self.plan(context)
-        if context.status == RunStatus.SKIPPED:
+        ctx = RunContext(user_request=file_path, document_content=doc_content)
+        ctx = await self.plan(ctx)
+        if ctx.status == RunStatus.SKIPPED:
             return OcrResult(
                 document_path=file_path,
-                schema_name=context.active_schema,
-                yaml_content="",
-                step_results=context.steps_results,
+                schema_name=ctx.active_schema,
+                context="",
+                step_results=ctx.steps_results,
                 retry_count=0,
-                status=context.status,
+                status=ctx.status,
             )
 
-        total_retries = await self.execute(context)
-        final_yaml = context.steps_results[-1].content if context.steps_results else ""
+        total_retries = await self.execute(ctx)
         return OcrResult(
             document_path=file_path,
-            schema_name=context.active_schema,
-            yaml_content=final_yaml,
-            step_results=context.steps_results,
+            schema_name=ctx.active_schema,
+            context=ctx.doc.model_dump_json() if ctx.doc else "",
+            step_results=ctx.steps_results,
             retry_count=total_retries,
-            status=context.status,
+            status=ctx.status,
         )
 
     async def plan(self, ctx: RunContext) -> RunContext:
@@ -94,6 +93,11 @@ class Orchestrator:
         for step in context.plan.steps:
             accepted, retries = await self._execute_with_review(context, step.id)
             context.steps_results.append(accepted)
+
+            # Incremental merge into accumulated doc
+            if accepted.doc is not None:
+                context.doc = accepted.doc if context.doc is None else context.doc.merge(accepted.doc)
+
             context.critic_feedback = []
             total_retries += retries
         context.status = RunStatus.COMPLETED
@@ -124,7 +128,7 @@ class Orchestrator:
         """
 
         retries = 0
-        result: StepResult | None = None
+        # result: StepResult | None = None
         context.status = RunStatus.EXECUTING
 
         for attempt in range(self._max_retries + 1):

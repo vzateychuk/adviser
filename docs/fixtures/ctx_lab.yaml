@@ -1,0 +1,24 @@
+user_request: "sample lab report text"
+document_content: |
+  Пациент: Иванов И.И.
+  Гемоглобин: 145 г/л
+  Глюкоза: 5.2 ммоль/л
+plan:
+  goal: "Extract lab measurements from the report"
+  action: PLAN
+  schema_name: lab
+  assumptions: []
+  steps:
+    - id: 1
+      title: "Extract lab measurements"
+      type: ocr
+      input: "document_content"
+      output: "lab"
+      success_criteria:
+        - "All numeric values copied exactly"
+        - "Units preserved verbatim"
+active_schema: lab
+status: planned
+steps_results: []
+critic_feedback: []
+doc: null

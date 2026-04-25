@@ -515,8 +515,8 @@ class OcrResult(BaseModel):
     schema_name: str | None = Field(
         description="Schema used for extraction (null if skipped)",
     )
-    yaml_content: str = Field(
-        description="Extracted data as YAML (empty if skipped/failed)",
+    context: str = Field(
+        description="Extracted data as JSON (empty if skipped/failed)",
     )
     step_results: list[StepResult] = Field(
         description="Results from each extraction step",

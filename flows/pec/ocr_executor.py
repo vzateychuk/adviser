@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from flows.pec.models import RunContext, StepResult
+from flows.pec.models import MedicalDoc, RunContext, StepResult
 from flows.pec.renderer import format_critic_feedback_items, render_step_template, summarize_previous_results
-from flows.pec.schema_catalog import SchemaCatalog
 from llm.protocol import LLMClient
 from common.types import ChatRequest, Message
 
@@ -12,10 +11,11 @@ log = logging.getLogger(__name__)
 
 
 class OcrExecutor:
-    """Runs the extraction step for a selected schema using the current context.
+    """Runs the extraction step for a selected schema using chat_structured.
 
-    It only consumes RunContext data so retries can reuse the same state without
-    hidden side effects or extra coupling to the CLI.
+    Returns typed MedicalDoc via instructor validation. It only consumes RunContext
+    data so retries can reuse the same state without hidden side effects or extra
+    coupling to the CLI.
     """
 
     def __init__(
@@ -24,18 +24,16 @@ class OcrExecutor:
         llm: LLMClient,
         system_prompt: str,
         user_template: str,
-        schema_catalog: SchemaCatalog,
     ):
         self._llm = llm
         self._system_template = system_prompt
         self._user_template = user_template
-        self._schema_catalog = schema_catalog
 
     async def execute(self, context: RunContext, step_id: int) -> StepResult:
-        """Execute one OCR extraction step and return the raw YAML result.
+        """Execute one OCR extraction step and return the typed MedicalDoc result.
 
-        The executor does not interpret the result; it simply produces output that
-        the critic can verify against the plan and the source document.
+        The executor uses chat_structured to obtain a validated MedicalDoc
+        matching the active schema.
         """
 
         if context.plan is None:
@@ -46,8 +44,7 @@ class OcrExecutor:
         if not context.active_schema:
             raise ValueError("RunContext.active_schema is required for execution")
 
-        schema = self._schema_catalog.get(context.active_schema)
-        previous_results = summarize_previous_results(context.steps_results)
+        previous_results = summarize_previous_results(context.doc)
         critic_feedback = format_critic_feedback_items(context.critic_feedback)
 
         system_prompt = render_step_template(
@@ -56,7 +53,6 @@ class OcrExecutor:
             self._system_template,
             previous_results=previous_results,
             critic_feedback=critic_feedback,
-            schema=schema,
         )
         user_prompt = render_step_template(
             context,
@@ -64,23 +60,23 @@ class OcrExecutor:
             self._user_template,
             previous_results=previous_results,
             critic_feedback=critic_feedback,
-            schema=schema,
         )
 
         log.debug("OcrExecutor.execute(step_id=%s, retry=%s)", step.id, bool(context.critic_feedback))
-        resp = await self._llm.chat(
+        doc = await self._llm.chat_structured(
             ChatRequest(
                 messages=[
                     Message(role="system", content=system_prompt),
                     Message(role="user", content=user_prompt),
                 ],
-            )
+            ),
+            response_model=MedicalDoc,
         )
-        log.debug("OcrExecutor response text:\n%s", resp.text)
+        log.debug("OcrExecutor response doc: schema_id=%s", doc.schema_id)
 
         return StepResult(
             step_id=step.id,
             executor="ocr",
-            content=resp.text.strip(),
+            doc=doc,
             assumptions=[],
         )

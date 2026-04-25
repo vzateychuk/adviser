@@ -38,6 +38,7 @@ def build_pec(
     )
 
     schema_catalog = SchemaCatalog("flows/pec/schemas")
+    max_retries = app_cfg.orchestrator.max_retries if hasattr(app_cfg, "orchestrator") else 3
 
     planner = Planner(
         llm=llm_factory.for_model(planner_model),
@@ -49,7 +50,6 @@ def build_pec(
         llm=llm_factory.for_model(ocr_model),
         system_prompt=ocr_system_prompt,
         user_template=ocr_user_template,
-        schema_catalog=schema_catalog,
     )
     critic = Critic(
         llm=llm_factory.for_model(critic_model),
@@ -57,8 +57,6 @@ def build_pec(
         user_template=critic_user_template,
         schema_catalog=schema_catalog,
     )
-
-    max_retries = app_cfg.orchestrator.max_retries if hasattr(app_cfg, "orchestrator") else 3
     return Orchestrator(
         planner=planner,
         executor=executor,

@@ -11,15 +11,6 @@ step:
   success_criteria: |
     {{STEP_SUCCESS_CRITERIA}}
 
-schema_required_blocks: |
-  {{SCHEMA_REQUIRED_BLOCKS}}
-
-schema_critic_rules: |
-  {{SCHEMA_CRITIC_RULES}}
-
-schema_yaml: |
-  {{SCHEMA_YAML}}
-
 document_content: |
   {{DOCUMENT_CONTENT}}
 
@@ -29,3 +20,5 @@ previous_results: |
 critic_feedback: |
   {{CRITIC_FEEDBACK}}
 </execution_context>
+
+Task: Extract medical data from the document_content above and respond with a valid JSON object conforming to the MedicalDoc schema. Use the step definitions and previous_results to understand context. Address any issues listed in critic_feedback.
