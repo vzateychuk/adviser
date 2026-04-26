@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from common.types import AppConfig, ModelsRegistry
 from flows.pec.critic import Critic
 from flows.pec.ocr_executor import OcrExecutor
@@ -9,20 +8,17 @@ from flows.pec.schema_catalog import SchemaCatalog
 from llm.client_factory import LLMClientFactory
 from tools.prompt import load_role_prompts
 
-
-
 def build_pec(
     *,
     llm_factory: LLMClientFactory,
     app_cfg: AppConfig,
     models_registry: ModelsRegistry,
 ) -> Orchestrator:
-    """Wire the PEC flow together from config, prompts, models, and schemas.
-
+    """Assembles the PEC pipeline from configuration, prompts, models, and schemas.
     Centralizing composition keeps the runtime consistent across the full flow
     and the isolated CLI commands.
+    Retry logic is handled at the LLM Client level.
     """
-
     planner_model = models_registry.models["planner"].primary
     ocr_model = models_registry.models["ocr_executor"].primary
     critic_model = models_registry.models["critic"].primary
@@ -38,7 +34,6 @@ def build_pec(
     )
 
     schema_catalog = SchemaCatalog("flows/pec/schemas")
-    max_retries = app_cfg.orchestrator.max_retries if hasattr(app_cfg, "orchestrator") else 3
 
     planner = Planner(
         llm=llm_factory.for_model(planner_model),
@@ -57,9 +52,9 @@ def build_pec(
         user_template=critic_user_template,
         schema_catalog=schema_catalog,
     )
+
     return Orchestrator(
         planner=planner,
         executor=executor,
         critic=critic,
-        max_retries=max_retries,
     )

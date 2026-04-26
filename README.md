@@ -1,105 +1,65 @@
 # advisor
 
 ## Run
-
 Default environment is `dev`:
-
 ```bash
-uv run advisor
-
-# explicit environment
+uv run advisor # explicit environment
 uv run advisor --env prod
-uv run advisor --env test   # mock LLM, no network required
+uv run advisor --env test # mock LLM, no network required
 ```
 
 ## Commands
-
 Five focused commands, each targeting one role in the pipeline:
-
 - `ask` — single step: send a question directly to the generic executor, no planning
 - `plan` — call the Planner and print goal + step titles
-- `exec-step` — execute one plan step (routes to generic or code executor by `step.type`)
-- `review` — review a step result against its success criteria, print verdict
-- `flow` — full pipeline: Planner -> Executor -> Reviewer loop, retries on rejection
+- `exec` — execute all plan steps **only through the OCR Executor** (no critic validation)
+- `critic` — review all executed steps sequentially, stopping at the first failure
+- `run` — full pipeline: `plan` → `exec` → `critic` (internal method)
 
 ## Tests
-
 ```bash
 uv run pytest -q
 ```
 
 ## Usage
-
 ### ask
-
 Calls the generic executor directly with the user request. No planning, no review loop.
-
 ```bash
 uv run advisor --env dev ask "Summarize why we keep LLM adapters vendor-agnostic."
 ```
 
 ### plan
-
-Calls the Planner and prints the structured goal and step titles.
-Expects LLM to return valid `PlanResult` JSON; exits with code 2 on failure.
-
+Calls the Planner and prints the structured goal and step titles. Expects LLM to return valid `PlanResult` JSON; exits with code 2 on failure.
 ```bash
 uv run advisor --env dev plan "Create a 3-step plan to implement a REST API with JWT auth."
 ```
 
-### exec-step
-
-Executes a single `PlanStep` passed as JSON. The executor is selected by `step.type`
-(`generic` or `code`). Useful for debugging a single step in isolation.
-
+### exec
+Execute all plan steps through the OCR Executor **without critic validation**. Useful for debugging the executor in isolation or running extraction without validation.
 ```bash
-uv run advisor --env dev exec-step "$(cat docs/steps/step_generic.json)"
-uv run advisor --env dev exec-step "$(cat docs/steps/step_code.json)"
+uv run advisor --env dev exec @docs/fixtures/ctx_plan.yaml
 ```
 
-Example inline:
-
+### critic
+Review all executed steps sequentially. Stops at the first rejected step.
 ```bash
-uv run advisor --env prod exec-step '{
-  "id": 1,
-  "title": "Explain vendor-agnostic adapters",
-  "type": "generic",
-  "input": "Why keep LLM adapters vendor-agnostic?",
-  "output": "Short explanation",
-  "success_criteria": ["mentions adapter layer", "mentions portability"]
-}'
+uv run advisor --env dev critic @docs/fixtures/ctx_exec.yaml
 ```
 
-### review
-
-Reviews a step result against its success criteria. Prints `approved=True/False`
-and the number of issues found. Both arguments are JSON strings.
-
+### run
+Full pipeline: `plan` → `exec` → `critic`.
 ```bash
-uv run advisor --env dev review \
-  "$(cat docs/steps/step_generic.json)" \
-  '{"id": 1, "executor": "generic", "content": "...", "assumptions": []}'
-```
-
-### flow
-
-Full pipeline: Planner produces a plan, each step is executed then reviewed by
-the Reviewer. Failed steps are retried with Reviewer feedback injected into the
-executor prompt. Retries up to `orchestrator.max_retries` from
-`config/<env>/app.yaml`.
-
-```bash
-uv run advisor --env prod flow "Implement a Python helper that loads role prompts from the filesystem."
+uv run advisor --env dev plan "мой документ"
+uv run advisor --env dev exec @ctx_plan.yaml
+uv run advisor --env dev critic @ctx_exec.yaml
 ```
 
 ## Configuration
-
-- `config/<env>/app.yaml` — LLM provider, DB path, prompts directory, `orchestrator.max_retries`
-- `config/<env>/models.yaml` — role-to-model mapping (`planner`, `generic_executor`, `code_executor`, `reviewer`)
+- `config/<env>/app.yaml` — LLM provider, DB path, prompts directory
+- `config/<env>/models.yaml` — role-to-model mapping (`planner`, `ocr_executor`, `critic`)
 - `prompts/<role>/system.md` + `user.md` — role system prompts and user templates
 
 ## Environments
-
 - `test` — mock LLM, no network, used in CI and unit tests
 - `dev` — OpenAI-compatible proxy at `localhost:4000`, for local development
 - `prod` — OpenAI-compatible proxy at `localhost:4000`, for production use

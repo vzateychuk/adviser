@@ -5,18 +5,15 @@ import typer
 from flows.pec.build_pec import build_pec
 from flows.pec.models import load_run_context, run_context_to_yaml, RunStatus
 
-async def exec(
+async def critic(
     ctx: typer.Context,
     context_yaml: str,
 ) -> None:
-    """Execute all steps using the executor WITHOUT critic validation.
-    This command runs each step in the plan through the executor only,
-    accumulating results in context.steps_results and printing the final context as YAML.
-    Useful for:
-    - Debugging the executor in isolation
-    - Running extraction without validation
+    """Run the critic to validate all executed steps sequentially.
+    This command reviews every step_result in context.steps_results in order,
+    stopping at the first rejected step.
     """
-    log = logging.getLogger("advisor.exec")
+    log = logging.getLogger("advisor.critic")
     orchestrator = build_pec(
         llm_factory=ctx.obj["llm_factory"],
         app_cfg=ctx.obj["app_cfg"],
@@ -27,16 +24,17 @@ async def exec(
         if context.plan is None:
             log.error("Plan is not set in context")
             raise typer.Exit(code=2)
-        if not context.plan.steps:
-            log.error("No steps in plan")
+        if not context.steps_results:
+            log.error("No step results to review. Run 'exec' first.")
             raise typer.Exit(code=2)
-
-        log.info("Executing %d steps", len(context.plan.steps))
-        await orchestrator.execute(context)
-        log.info("All %d steps completed", len(context.plan.steps))
+        log.info("Reviewing %d steps", len(context.steps_results))
+        await orchestrator.critic(context)  # Метод возвращает None, но мутирует контекст
+        if context.status == RunStatus.FAILED:
+            log.error("Review failed: %d issues found", len(context.critic_feedback))
+            raise typer.Exit(code=1)
+        log.info("All steps approved")
     except Exception as e:
-        log.exception("Execution failed: %s", e)
+        log.exception("Review failed: %s", e)
         raise typer.Exit(code=2)
-
     typer.echo(run_context_to_yaml(context), nl=False)
     raise typer.Exit(code=0)
