@@ -42,7 +42,7 @@ def main(
 
 app.command()(ask)
 app.command()(plan)
-app.command("exec")(exec)
+app.command()(exec)
 app.command("critic")(critic)
 app.command("ocr-flow")(ocr_flow)
 

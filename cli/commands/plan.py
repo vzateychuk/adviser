@@ -5,7 +5,7 @@ import logging
 
 import typer
 
-from cli.commands.pec_context import build_initial_context
+from cli.commands.utils import build_initial_context
 from flows.pec.build_pec import build_pec
 from flows.pec.models import run_context_to_yaml
 
@@ -27,13 +27,13 @@ def plan(
         app_cfg=ctx.obj["app_cfg"],
         models_registry=ctx.obj["models_registry"],
     )
-    context = build_initial_context(user_request)
+    runCtx = build_initial_context(user_request)
 
     try:
-        context = asyncio.run(orchestrator.plan(context))
+        asyncio.run(orchestrator.plan(runCtx))
     except Exception as e:
         log.exception("Planner failed: %s", e)
         raise typer.Exit(code=2)
 
-    typer.echo(run_context_to_yaml(context), nl=False)
+    typer.echo(run_context_to_yaml(runCtx), nl=False)
     raise typer.Exit(code=0)

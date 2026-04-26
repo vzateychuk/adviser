@@ -32,7 +32,7 @@ class Critic:
         self._user_template = user_template
         self._schema_catalog = schema_catalog
 
-    async def review(self, context: RunContext, step_id: int, result: StepResult) -> CriticResult:
+    async def review(self, context: RunContext, res: StepResult) -> CriticResult:
         """Ask the LLM for a structured verdict on one executor result.
 
         This centralizes review behavior so retries and rejection reasons stay
@@ -41,14 +41,14 @@ class Critic:
 
         if context.plan is None:
             raise ValueError("RunContext.plan is required for review")
-        step = next((item for item in context.plan.steps if item.id == step_id), None)
+        step = next((item for item in context.plan.steps if item.id == res.step_id), None)
         if step is None:
-            raise ValueError(f"Plan step not found: {step_id}")
+            raise ValueError(f"Plan step not found: {res.step_id}")
         schema = self._schema_catalog.get(context.active_schema) if context.active_schema else None
         user_content = render_critic_template(
             context,
             step,
-            result,
+            res,
             self._user_template,
             schema=schema,
         )

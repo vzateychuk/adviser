@@ -1,0 +1,96 @@
+user_request: docs\medocs\2019-07-09_leg-veins-ultrasound.json
+document_content: "{\n  \"$schema\": \"../schemas/procedure.schema.json\",\n  \"version\"\
+  : \"1.0.0\",\n  \"id\": \"proc_2019-07-09_001\",\n  \"date\": \"2019-07-09\",\n\
+  \  \"type\": \"procedure\",\n  \"category\": \"Сосудистая хирургия\",\n  \"title\"\
+  : \"УЗИ вен нижних конечностей\",\n  \"organization\": {\n    \"name\": \"Многопрофильный\
+  \ медицинский центр\",\n    \"location\": \"г. Минск\"\n  },\n  \"doctor\": {\n\
+  \    \"name\": \"Анищенко Л.В.\",\n    \"specialty\": \"УЗИ-диагностика\"\n  },\n\
+  \  \"patient\": {\n    \"name\": \"Затейчук Владимир Евгеньевич\",\n    \"gender\"\
+  : \"мужской\",\n    \"birthDate\": \"1971-02-23\"\n  },\n  \"procedure\": {\n  \
+  \  \"name\": \"Ультразвуковое ангиосканирование вен нижних конечностей\",\n    \"\
+  type\": \"УЗИ сосудов\"\n  },\n  \"results\": {\n    \"rightLeg\": {\n      \"saphenousVein\"\
+  : {\n        \"condition\": \"состоятельный\",\n        \"diameter\": \"9.5 мм (столб\
+  \ 11.7 мм)\",\n        \"reflux\": \"нет\",\n        \"thighDiameter\": {\n    \
+  \      \"lowerThird\": \"6.1 мм\",\n          \"middleThird\": \"6.1 мм (столб 8.6\
+  \ мм)\",\n          \"upperThird\": \"6.1 мм\"\n        },\n        \"kneeDiameter\"\
+  : {\n          \"lowerThird\": \"3.0 мм\",\n          \"middleThird\": \"3.0 мм\"\
+  ,\n          \"upperThird\": \"3.1 мм\"\n        }\n      },\n      \"femoralVein\"\
+  : {\n        \"condition\": \"состоятельный\",\n        \"diameter\": \"7.9 мм\"\
+  ,\n        \"reflux\": \"нет\",\n        \"thighDiameter\": {\n          \"lowerThird\"\
+  : \"3.5 мм\",\n          \"middleThird\": \"3.5 мм\",\n          \"upperThird\"\
+  : \"4.5 мм\"\n        },\n        \"kneeDiameter\": {\n          \"lowerThird\"\
+  : \"2.1 мм\",\n          \"middleThird\": \"2.6 мм\",\n          \"upperThird\"\
+  : \"3.1 мм\"\n        }\n      },\n      \"smallSaphenousVein\": {\n        \"condition\"\
+  : \"состоятельный\",\n        \"reflux\": \"нет\",\n        \"kneeDiameter\": {\n\
+  \          \"lowerThird\": \"2.0 мм\",\n          \"middleThird\": \"2.7 мм\",\n\
+  \          \"upperThird\": \"2.7 мм\"\n        }\n      },\n      \"perforatingVeins\"\
+  : {\n        \"condition\": \"состоятельный\",\n        \"reflux\": \"нет\",\n \
+  \       \"kneeDiameter\": {\n          \"lowerThird\": \"2.1 мм\",\n          \"\
+  middleThird\": \"2.7 мм\",\n          \"upperThird\": \"2.7 мм\"\n        }\n  \
+  \    }\n    },\n    \"leftLeg\": {\n      \"saphenousVein\": {\n        \"condition\"\
+  : \"состоятельный\",\n        \"diameter\": \"9.5 мм (столб 11.7 мм)\",\n      \
+  \  \"reflux\": \"нет\",\n        \"thighDiameter\": {\n          \"lowerThird\"\
+  : \"6.1 мм\",\n          \"middleThird\": \"6.1 мм (столб 8.6 мм)\",\n         \
+  \ \"upperThird\": \"6.1 мм\"\n        },\n        \"kneeDiameter\": {\n        \
+  \  \"lowerThird\": \"3.0 мм\",\n          \"middleThird\": \"3.0 мм\",\n       \
+  \   \"upperThird\": \"3.1 мм\"\n        }\n      },\n      \"femoralVein\": {\n\
+  \        \"condition\": \"состоятельный\",\n        \"diameter\": \"7.9 мм\",\n\
+  \        \"reflux\": \"нет\",\n        \"thighDiameter\": {\n          \"lowerThird\"\
+  : \"3.5 мм\",\n          \"middleThird\": \"3.5 мм\",\n          \"upperThird\"\
+  : \"4.5 мм\"\n        },\n        \"kneeDiameter\": {\n          \"lowerThird\"\
+  : \"2.1 мм\",\n          \"middleThird\": \"2.6 мм\",\n          \"upperThird\"\
+  : \"3.1 мм\"\n        }\n      },\n      \"smallSaphenousVein\": {\n        \"condition\"\
+  : \"состоятельный\",\n        \"reflux\": \"нет\",\n        \"kneeDiameter\": {\n\
+  \          \"lowerThird\": \"2.0 мм\",\n          \"middleThird\": \"2.7 мм\",\n\
+  \          \"upperThird\": \"2.7 мм\"\n        }\n      },\n      \"perforatingVeins\"\
+  : {\n        \"condition\": \"состоятельный\",\n        \"reflux\": \"нет\",\n \
+  \       \"kneeDiameter\": {\n          \"lowerThird\": \"2.1 мм\",\n          \"\
+  middleThird\": \"2.7 мм\",\n          \"upperThird\": \"2.7 мм\"\n        }\n  \
+  \    }\n    },\n    \"perforatingVeins\": {\n      \"incompetent\": [\n        {\n\
+  \          \"location\": \"по медиальной поверхности голени в нижней трети\",\n\
+  \          \"size\": \"6.4 мм (Коксет 2) (столб 5.8 мм)\"\n        },\n        {\n\
+  \          \"location\": \"по медиальной поверхности голени в средней трети\",\n\
+  \          \"size\": \"3.5 мм (столб)\"\n        },\n        {\n          \"location\"\
+  : \"по задне-медиальной поверхности в средней трети\",\n          \"size\": \"4.3\
+  \ мм (столб)\"\n        }\n      ],\n      \"competent\": \"нет\"\n    },\n    \"\
+  deepVeins\": {\n      \"description\": \"Глубокие вены обеих ног проходимы, не расширены,\
+  \ кровоток фазный с дыханием, патологический венозный рефлюкс отсутствует\",\n \
+  \     \"status\": \"норма\"\n    }\n  },\n  \"conclusion\": {\n    \"diagnosis\"\
+  : \"Патологии со стороны глубоких вен нижних конечностей нет. Исходящий варикоз\
+  \ в системе БПВ правой нижней конечности. Перфорантный варикоз правой нижней конечности\"\
+  ,\n    \"description\": \"Выявлен варикоз большой подкожной вены правой ноги и перфорантный\
+  \ варикоз. Глубокие вены в норме.\",\n    \"recommendations\": [\n      \"Консультация\
+  \ сосудистого хирурга\",\n      \"Компрессионная терапия\",\n      \"Динамическое\
+  \ наблюдение\"\n    ],\n    \"followUp\": \"Консультация сосудистого хирурга\"\n\
+  \  },\n  \"notes\": \"УЗИ выявило варикозное расширение поверхностных вен правой\
+  \ ноги. Глубокие вены проходимы. Требуется консультация специалиста.\",\n  \"tags\"\
+  : [\"УЗИ\", \"вены\", \"варикоз\", \"сосудистая хирургия\", \"нижние конечности\"\
+  ],\n  \"relatedDocuments\": [\n    {\n      \"type\": \"source\",\n      \"path\"\
+  : \".data/ocr/Затейчук В.Е. 2019.07.09 УЗИ вен ног.txt\",\n      \"description\"\
+  : \"OCR извлеченный текст\"\n    }\n  ],\n  \"metadata\": {\n    \"createdAt\":\
+  \ \"2019-07-09T00:00:00Z\",\n    \"lastUpdated\": \"2019-07-09T00:00:00Z\",\n  \
+  \  \"ocrProcessed\": true,\n    \"ocrQuality\": \"medium\",\n    \"ocrErrors\":\
+  \ \"Некоторые символы распознаны неточно, но основная информация извлечена\",\n\
+  \    \"sourceDocument\": \"Затейчук В.Е. 2019.07.09 УЗИ вен ног.pdf\"\n  }\n}\n"
+plan:
+  goal: Extract ultrasound results from the patient's medical record
+  action: PLAN
+  schema_name: diagnostic
+  assumptions:
+  - Document is a medical record
+  - Contains ultrasound images
+  steps:
+  - id: 1
+    title: Identify and extract all ultrasound images from the document
+    type: ocr
+    input: document_content
+    output: diagnostic
+    success_criteria:
+    - Preserve all dates exactly as written
+    - Preserve all numeric values exactly as written
+    - Preserve all measurement units exactly as written
+active_schema: diagnostic
+steps_results: []
+doc: null
+critic_feedback: []
+status: planned

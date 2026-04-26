@@ -508,9 +508,11 @@ class OcrResult(BaseModel):
         description="Schema used for extraction (null if skipped)",
     )
     context: str = Field(
+        default="",
         description="Extracted data as JSON (empty if skipped/failed)",
     )
     step_results: list[StepResult] = Field(
+        default_factory=list,
         description="Results from each extraction step",
     )
     retry_count: int = Field(

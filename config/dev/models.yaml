@@ -6,8 +6,8 @@ models:
     fallback: "qwen2.5:0.5b"
 
   ocr_executor:
-    primary: "qwen2.5-coder:1.5b"
-    fallback: "qwen2.5:0.5b"
+    primary: "qwen2.5:0.5b"
+    fallback: "qwen2.5-coder:1.5b"
 
   critic:
     primary: "qwen2.5:0.5b"

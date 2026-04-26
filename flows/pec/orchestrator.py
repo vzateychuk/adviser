@@ -1,18 +1,23 @@
 from __future__ import annotations
+
 import logging
+
 from flows.pec.critic import Critic
-from flows.pec.models import OcrResult, PlanAction, RunContext, RunStatus, StepResult
+from flows.pec.models import OcrResult, PlanAction, RunContext, RunStatus
 from flows.pec.ocr_executor import OcrExecutor
 from flows.pec.planner import Planner
 
 log = logging.getLogger(__name__)
 
+
 class Orchestrator:
     """Coordinates the planner, executor, and critic through a shared run context.
+    
     Orchestrator manages the workflow:
     - plan() — generates the plan.
     - execute() — runs steps (executor-only, no critic).
     - critic() — reviews results (critic-only).
+    
     Retry logic is handled at the LLM Client level.
     """
 
@@ -29,10 +34,12 @@ class Orchestrator:
 
     async def run(self, file_path: str, doc_content: str = "") -> OcrResult:
         """Execute the full PEC pipeline and return the final OCR artifact.
-        This is the end-to-end entry point used when callers want one process to handle planning, extraction, review, and final result assembly.
+        
+        All methods mutate the context in place. No reassignment needed.
         """
         ctx = RunContext(user_request=file_path, document_content=doc_content)
-        ctx = await self.plan(ctx)
+        await self.plan(ctx)
+        
         if ctx.status == RunStatus.SKIPPED:
             return OcrResult(
                 document_path=file_path,
@@ -42,12 +49,13 @@ class Orchestrator:
                 retry_count=0,
                 status=ctx.status,
             )
-
+        
         # 1. Execute all steps via executor (no critic)
         await self.execute(ctx)
-
-        # 2. Review all results via critic
-        ctx = await self.critic(ctx)
+        
+        # 2. Review all results via critic (mutates ctx in place)
+        await self.critic(ctx)
+        
         return OcrResult(
             document_path=file_path,
             schema_name=ctx.active_schema,
@@ -57,56 +65,80 @@ class Orchestrator:
             status=ctx.status,
         )
 
-    async def plan(self, ctx: RunContext) -> RunContext:
-        """Populate the run context with planner output and derived schema state."""
+    async def plan(self, ctx: RunContext) -> None:
+        """Populate the run context with planner output and derived schema state.
+        Mutates the context in place.
+        """
         plan = await self._planner.plan(
             user_request=ctx.user_request,
             document_content=ctx.document_content,
         )
         ctx.plan = plan
         ctx.active_schema = plan.schema_name
-        ctx.status = RunStatus.SKIPPED if plan.action == PlanAction.SKIP else RunStatus.PLANNED
-        return ctx
+        ctx.status = (
+            RunStatus.SKIPPED if plan.action == PlanAction.SKIP else RunStatus.PLANNED
+        )
 
     async def execute(self, context: RunContext) -> None:
         """Execute all planned steps WITHOUT critic, with retry logic delegated to transport layer."""
         if context.plan is None:
             raise ValueError("RunContext.plan is required for execution")
+        
         if context.plan.action == PlanAction.SKIP:
             context.status = RunStatus.SKIPPED
             return
-
+        
         for step in context.plan.steps:
             step_id = step.id
             log.info("Executing step %d: %s", step_id, step.title)
             result = await self._executor.execute(context, step_id)
             context.steps_results.append(result)
-
+            
             # Incremental merge into accumulated doc
             if result.doc is not None:
                 if context.doc is None:
                     context.doc = result.doc
                 else:
                     context.doc = context.doc.merge(result.doc)
-
+        
         context.status = RunStatus.COMPLETED
         log.info("Executed %d steps", len(context.steps_results))
 
-    async def critic(self, context: RunContext) -> RunContext:
-        """Review all executed steps sequentially, stopping on first failure."""
+    async def critic(self, context: RunContext) -> None:
+        """Review all executed steps sequentially, stopping on first failure.
+        
+        This method mutates the context in place, updating:
+        - context.critic_feedback (list of issues if rejected)
+        - context.status (FAILED if rejected, COMPLETED if all approved)
+        
+        Args:
+            context: Shared run context with steps_results populated
+            
+        Raises:
+            ValueError: If no steps_results are present
+        """
         if context.plan is None:
             raise ValueError("RunContext.plan is required for review")
+        
         if not context.steps_results:
             raise ValueError("No step results to review")
-
+        
         for step_result in context.steps_results:
             log.debug("Reviewing step %d", step_result.step_id)
             verdict = await self._critic.review(context, step_result)
+            
             if not verdict.approved:
                 context.critic_feedback = verdict.issues
                 context.status = RunStatus.FAILED
-                log.error("Step %d rejected: %s", step_result.step_id, verdict.issues)
-                return context
+                log.error(
+                    "Step %d rejected: %s",
+                    step_result.step_id,
+                    verdict.summary,
+                )
+                return
+            
+            log.debug("Step %d approved", step_result.step_id)
+        
+        context.critic_feedback = []
         context.status = RunStatus.COMPLETED
         log.info("All %d steps approved", len(context.steps_results))
-        return context
