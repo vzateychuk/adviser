@@ -52,7 +52,6 @@
      "action": "PLAN",
      "goal": "Extract laboratory panel results",
      "schema_name": "lab",
-     "assumptions": ["Document is in Russian", "Contains blood test results"],
      "steps": [
        {
          "id": 1,
@@ -77,7 +76,6 @@
      "action": "SKIP",
      "goal": "Document is not a medical record",
      "schema_name": null,
-     "assumptions": ["Content appears to be a shopping list"],
      "steps": []
    }
  ```

@@ -90,10 +90,6 @@ class PlanResult(BaseModel):
         default=None,
         description="Target schema ID from catalog (null for SKIP)",
     )
-    assumptions: list[str] = Field(
-        default_factory=list,
-        description="Assumptions made during planning",
-    )
     steps: list[PlanStep] = Field(
         default_factory=list,
         description="Extraction steps (empty for SKIP)",
@@ -123,7 +119,7 @@ class PlanResult(BaseModel):
 class StepResult(BaseModel):
     """Result of executing a single step.
 
-    Contains the extracted medical document and any assumptions made by the executor.
+    Contains the extracted medical document produced by the executor.
     """
 
     step_id: int = Field(
@@ -137,10 +133,6 @@ class StepResult(BaseModel):
     doc: "MedicalDoc | None" = Field(
         default=None,
         description="Typed medical extraction (None only for skipped/failed steps)",
-    )
-    assumptions: list[str] = Field(
-        default_factory=list,
-        description="Assumptions made during extraction",
     )
 
 

@@ -89,10 +89,6 @@ class PlannerOutputSchema(BaseModel):
             "Required when action=PLAN. Must be null when action=SKIP."
         ),
     )
-    assumptions: list[str] = Field(
-        default_factory=list,
-        description="Assumptions made during triage (e.g., 'Document is in Russian', 'Contains blood test results')",
-    )
     steps: list[PlanStepSchema] = Field(
         default_factory=list,
         description="Extraction steps (required when action=PLAN, empty when action=SKIP)",
@@ -122,7 +118,7 @@ class PlannerOutputSchema(BaseModel):
             goal=self.goal,
             action=PlanAction(self.action),
             schema_name=self.schema_name,
-            assumptions=self.assumptions,
+            
             steps=[
                 PlanStep(
                     id=step.id,
@@ -236,7 +232,7 @@ class Planner:
                 goal=output.goal or "Document skipped",
                 action=PlanAction.SKIP,
                 schema_name=None,
-                assumptions=output.assumptions,
+                
                 steps=[],
             )
 
@@ -278,6 +274,6 @@ class Planner:
             goal=output.goal,
             action=PlanAction.PLAN,
             schema_name=schema_name,
-            assumptions=output.assumptions,
+            
             steps=steps,
         )

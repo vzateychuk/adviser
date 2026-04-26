@@ -22,7 +22,6 @@ def test_plan_validates_and_serializes():
         goal="Extract blood test data",
         action=PlanAction.PLAN,
         schema_name="lab",
-        assumptions=["A1"],
         steps=[
             PlanStep(
                 id=1,
