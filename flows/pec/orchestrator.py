@@ -105,4 +105,8 @@ class Orchestrator:
             if not verdict.approved:
                 context.critic_feedback = verdict.issues
                 context.status = RunStatus.FAILED
-                log.error("Step %d rejected: %s",
+                log.error("Step %d rejected: %s", step_result.step_id, verdict.issues)
+                return context
+        context.status = RunStatus.COMPLETED
+        log.info("All %d steps approved", len(context.steps_results))
+        return context

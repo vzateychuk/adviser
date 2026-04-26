@@ -28,7 +28,7 @@ async def critic(
             log.error("No step results to review. Run 'exec' first.")
             raise typer.Exit(code=2)
         log.info("Reviewing %d steps", len(context.steps_results))
-        await orchestrator.critic(context)  # Метод возвращает None, но мутирует контекст
+        context = await orchestrator.critic(context)
         if context.status == RunStatus.FAILED:
             log.error("Review failed: %d issues found", len(context.critic_feedback))
             raise typer.Exit(code=1)
