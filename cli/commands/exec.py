@@ -38,7 +38,7 @@ def exec(
 
         steps_list = runCtx.plan.steps
         log.info("Executing %d step(s)", len(steps_list))
-        log.info("\n" + "\n".join(f"  [{i+1}] {s.title}" for i, s in enumerate(steps_list)))
+        log.info("\n".join(f"  [{i+1}] {s.title}" for i, s in enumerate(steps_list)))
 
         asyncio.run(orchestrator.execute(runCtx))
         log.info("All %d steps completed", len(runCtx.steps_results))

@@ -1,13 +1,41 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from flows.pec.models import MedicalDoc, RunContext, StepResult
+from flows.pec.models import MedicalDoc, StepResult
 from flows.pec.renderer import format_critic_feedback_items, render_step_template, summarize_previous_results
 from llm.protocol import LLMClient
 from common.types import ChatRequest, Message
 
+if TYPE_CHECKING:
+    from flows.pec.models import MedicalDoc, RunContext, StepResult
+
 log = logging.getLogger(__name__)
+
+
+def _log_medical_doc(doc: MedicalDoc) -> None:
+    """Log extracted medical doc contents at debug level."""
+    log.debug("OcrExecutor response doc:")
+    log.debug("  schema_id: %s", doc.schema_id)
+    if doc.measurements:
+        log.debug("  measurements (%d):", len(doc.measurements))
+        for m in doc.measurements:
+            log.debug("    - %s: %s %s [%s]", m.name, m.value, m.unit or "", m.status)
+    else:
+        log.debug("  measurements: []")
+    if doc.findings:
+        log.debug("  findings (%d):", len(doc.findings))
+        for f in doc.findings:
+            log.debug("    - %s", f)
+    else:
+        log.debug("  findings: []")
+    if doc.diagnoses:
+        log.debug("  diagnoses (%d):", len(doc.diagnoses))
+        for d in doc.diagnoses:
+            log.debug("    - %s", d)
+    else:
+        log.debug("  diagnoses: []")
 
 
 class OcrExecutor:
@@ -63,7 +91,7 @@ class OcrExecutor:
         )
 
         log.debug("OcrExecutor.execute(step_id=%s, retry=%s)", step.id, bool(context.critic_feedback))
-        doc = await self._llm.chat_structured(
+        doc: MedicalDoc = await self._llm.chat_structured(
             ChatRequest(
                 messages=[
                     Message(role="system", content=system_prompt),
@@ -72,7 +100,8 @@ class OcrExecutor:
             ),
             response_model=MedicalDoc,
         )
-        log.debug("OcrExecutor response doc: schema_id=%s", doc.schema_id)
+
+        _log_medical_doc(doc)
 
         return StepResult(
             step_id=step.id,

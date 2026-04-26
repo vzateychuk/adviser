@@ -30,7 +30,6 @@ def planner_mock(req: ChatRequest) -> ChatResponse:
                 "action: SKIP\n"
                 "goal: Input is not a medical document\n"
                 "schema_name: null\n"
-                "assumptions: []\n"
                 "steps: []\n"
             )
         )
@@ -41,7 +40,6 @@ def planner_mock(req: ChatRequest) -> ChatResponse:
             "action: PLAN\n"
             "goal: Extract medical data from document\n"
             f"schema_name: {schema_name}\n"
-            "assumptions:\n"
             "  - deterministic test scenario\n"
             "steps:\n"
             "  - id: 1\n"
@@ -120,7 +118,6 @@ def planner_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
             action="SKIP",
             goal="Input is not a medical document",
             schema_name=None,
-            assumptions=[],
             steps=[],
         )
         return result  # type: ignore[return-value]
@@ -132,7 +129,6 @@ def planner_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
         action="PLAN",
         goal="Extract medical data from document",
         schema_name=schema_name,
-        assumptions=["deterministic test scenario"],
         steps=[
             PlanStepSchema(
                 id=1,

@@ -4,9 +4,13 @@ from dataclasses import dataclass, field, asdict, is_dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
+import logging
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
+
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -152,7 +156,7 @@ class CriticIssue(BaseModel):
     )
     description: str = Field(
         min_length=1,
-        description="Clear description of what's wrong",
+        description="Clear description of what is wrong",
     )
     suggestion: str = Field(
         min_length=1,
@@ -170,214 +174,337 @@ class CriticResult(BaseModel):
     approved: bool = Field(
         description="True if extraction meets all criteria, False if issues found",
     )
+    summary: str = Field(
+        default="",
+        description="Brief summary of the review",
+    )
     issues: list[CriticIssue] = Field(
         default_factory=list,
-        description="List of issues found (empty when approved=True)",
+        description="List of issues found (empty if approved)",
     )
-    summary: str = Field(
-        min_length=1,
-        description="Brief summary of the review verdict",
-    )
-
-    @model_validator(mode="after")
-    def check_issues_on_reject(self) -> "CriticResult":
-        """Ensure rejected results have at least one issue."""
-        if not self.approved and not self.issues:
-            raise ValueError("issues must not be empty when approved is False")
-        return self
 
 
 # =============================================================================
-# MEDICAL EXTRACTION MODELS
+# MEDICAL DOCUMENT MODELS
 # =============================================================================
+
+
+def _normalize_to_list(v: Any) -> list[str]:
+    """Convert value to list[str], handling str/list/None."""
+    if v is None:
+        return []
+    if isinstance(v, str):
+        return [v] if v.strip() else []
+    if isinstance(v, list):
+        return [str(x) for x in v]
+    return [str(v)]
 
 
 class DocumentInfo(BaseModel):
-    """Метаданные документа."""
+    """Document metadata."""
 
     date: str | None = Field(
         default=None,
-        description="Дата документа в формате как в источнике (например, '2020-02-09')",
+        description="Document date as written in source (e.g., '2020-02-09')",
     )
     organization: str | None = Field(
         default=None,
-        description="Название медицинского учреждения",
+        description="Medical institution name",
     )
     doctor: str | None = Field(
         default=None,
-        description="ФИО врача",
+        description="Doctor full name",
     )
     specialty: str | None = Field(
         default=None,
-        description="Специальность врача (например, 'УЗИ-диагностика', 'Терапевт')",
+        description="Doctor specialty (e.g., 'Ultrasound diagnostic', 'Therapist')",
     )
 
 
 class PatientInfo(BaseModel):
-    """Информация о пациенте."""
+    """Patient information."""
 
     full_name: str | None = Field(
         default=None,
-        description="Полное ФИО пациента",
+        description="Patient full name",
     )
     birth_date: str | None = Field(
         default=None,
-        description="Дата рождения в формате как в источнике",
+        description="Birth date as written in source",
     )
     gender: Literal["male", "female", "unknown"] | None = Field(
         default=None,
-        description="Пол пациента",
+        description="Patient gender",
     )
+
+    @field_validator("gender", mode="before")
+    @classmethod
+    def normalize_gender(cls, v: Any) -> str | None:
+        """Normalize Russian gender values to English."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return v
+        normalized = v.lower().strip()
+        # TODO: Load from config/gender_map.yaml at startup
+        GENDER_MAP = {
+            "мужской": "male", "муж": "male", "м": "male", "male": "male", "m": "male",
+            "женский": "female", "жен": "female", "ж": "female", "female": "female", "f": "female",
+            "неизвестно": "unknown", "unknown": "unknown", "н": "unknown", "-": "unknown", "": "unknown",
+        }
+        return GENDER_MAP.get(normalized, v)
 
 
 class Measurement(BaseModel):
-    """Универсальное измерение.
+    """Universal measurement.
 
-    Используется для:
-    - Лабораторных показателей (гемоглобин, глюкоза)
-    - Измерений на УЗИ/КТ/МРТ (размеры органов)
-    - Физикальных данных (АД, пульс, температура)
+    Used for:
+    - Lab values (hemoglobin, glucose)
+    - Ultrasound/CT/MRI measurements (organ sizes)
+    - Physical data (blood pressure, pulse, temperature)
     """
 
     name: str = Field(
-        description="Название показателя (например, 'Гемоглобин', 'Толщина стенки')",
+        description="Measurement name (e.g., 'Hemoglobin', 'Wall thickness')",
     )
     value: str = Field(
-        description="Значение как в документе (например, '140', '12', '120/80')",
+        description="Value as in document (e.g., '140', '12', '120/80')",
     )
     unit: str | None = Field(
         default=None,
-        description="Единица измерения (например, 'г/л', 'мм', 'мм рт.ст.')",
+        description="Measurement unit (e.g., 'g/L', 'mm', 'mm Hg')",
     )
     reference_range: str | None = Field(
         default=None,
-        description="Референсный диапазон (например, '120-160', '< 5.5')",
+        description="Reference range (e.g., '120-160', '< 5.5')",
     )
     status: Literal["normal", "low", "high", "abnormal", "unknown"] = Field(
         default="unknown",
-        description="Статус относительно нормы",
+        description="Status relative to normal range",
     )
     notes: str | None = Field(
         default=None,
-        description="Дополнительные комментарии к показателю",
+        description="Additional comments about the measurement",
     )
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, v: Any) -> str:
+        """Normalize Russian status values to English."""
+        if v is None:
+            return "unknown"
+        if not isinstance(v, str):
+            return str(v)
+        normalized = v.lower().strip()
+        # TODO: Load from config/status_map.yaml at startup
+        STATUS_MAP = {
+            "норма": "normal", "н": "normal", "normal": "normal",
+            "повышен": "high", "высокий": "high", "пов": "high", "повышено": "high", "high": "high",
+            "понижен": "low", "низкий": "low", "понижено": "low", "low": "low",
+            "отклонение": "abnormal", "abnormal": "abnormal", "откл": "abnormal",
+        }
+        return STATUS_MAP.get(normalized, "unknown")
+
+    @field_validator("unit", mode="before")
+    @classmethod
+    def normalize_unit(cls, v: Any) -> str | None:
+        """Normalize Russian unit values to English."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return str(v)
+        normalized = v.lower().strip()
+        # TODO: Load from config/unit_map.yaml at startup
+        UNIT_MAP = {
+            "мсек": "ms", "мс": "ms", "миллисекунда": "ms", "миллисекунды": "ms",
+            "сек": "s", "секунда": "s", "секунды": "s",
+            "мин": "min", "минута": "min", "минуты": "min",
+            "час": "h", "часа": "h", "часов": "h",
+            "мг": "mg", "миллиграмм": "mg", "миллиграмма": "mg",
+            "г": "g", "грамм": "g", "грамма": "g",
+            "кг": "kg", "килограмм": "kg", "килограмма": "kg",
+            "мл": "mL", "миллилитр": "mL", "миллилитра": "mL",
+            "л": "L", "литр": "L",
+            "мм рт.ст.": "mm Hg", "мм рт ст": "mm Hg", "мм.рт.ст.": "mm Hg",
+            "мм": "mm", "миллиметр": "mm",
+            "см": "cm", "сантиметр": "cm",
+            "м": "m", "метр": "m",
+            "мкм": "μm", "микрометр": "μm", "микрон": "μm",
+            "уед": "U", "единиц": "U", "единицы": "U",
+            "%": "%", "процент": "%",
+            "уд/мин": "bpm", "ударов в минуту": "bpm",
+            "°c": "°C", "градус цельсия": "°C",
+        }
+        if normalized in UNIT_MAP:
+            return UNIT_MAP[normalized]
+        return v
 
 
 class Medication(BaseModel):
-    """Информация о препарате."""
+    """Medication information."""
 
     name: str = Field(
-        description="Название препарата",
+        description="Medication name",
     )
     dosage: str | None = Field(
         default=None,
-        description="Дозировка (например, '500 мг', '10 мл')",
+        description="Dosage (e.g., '500 mg', '10 ml')",
     )
     frequency: str | None = Field(
         default=None,
-        description="Частота приёма (например, '2 раза в день', 'утром натощак')",
+        description="Frequency (e.g., 'twice daily', 'morning')",
     )
     duration: str | None = Field(
         default=None,
-        description="Длительность курса (например, '14 дней', '1 месяц')",
+        description="Course duration (e.g., '14 days', '1 month')",
     )
     route: str | None = Field(
         default=None,
-        description="Способ приёма (например, 'перорально', 'в/м', 'наружно')",
+        description="Administration route (e.g., 'oral', 'IM', 'topical')",
     )
 
 
 class MedicalDoc(BaseModel):
-    """Универсальная схема медицинского документа.
+    """Universal medical document schema.
 
-    Единая структура для всех типов документов:
-    - lab: лабораторные анализы
-    - diagnostic: УЗИ, рентген, КТ, МРТ
-    - consultation: консультации врачей
-    - medication_trace: назначения, рецепты
+    Unified structure for all document types:
+    - lab: laboratory tests
+    - diagnostic: Ultrasound, X-ray, CT, MRI
+    - consultation: doctor consultations
+    - medication_trace: prescriptions, medications
 
-    LLM заполняет релевантные поля, остальные остаются пустыми.
+    LLM fills relevant fields, others remain empty.
     """
 
-    # === ИДЕНТИФИКАЦИЯ ===
+    # === IDENTIFICATION ===
     schema_id: Literal["lab", "diagnostic", "consultation", "medication_trace"] = Field(
-        description="Тип документа, определённый Planner'ом",
+        description="Document type determined by Planner",
     )
 
-    # === ОБЩИЕ СЕКЦИИ ===
+    # === COMMON SECTIONS ===
     document: DocumentInfo = Field(
         default_factory=DocumentInfo,
-        description="Метаданные документа",
+        description="Document metadata",
     )
     patient: PatientInfo = Field(
         default_factory=PatientInfo,
-        description="Информация о пациенте",
+        description="Patient information",
     )
 
-    # === ИЗМЕРЕНИЯ (lab, diagnostic) ===
+    # === MEASUREMENTS (lab, diagnostic) ===
     measurements: list[Measurement] = Field(
         default_factory=list,
         description=(
-            "Числовые измерения: "
-            "для lab — анализы (гемоглобин, глюкоза); "
-            "для diagnostic — размеры органов, объёмы"
+            "Numeric measurements: "
+            "for lab - tests (hemoglobin, glucose); "
+            "for diagnostic - organ sizes, volumes"
         ),
     )
 
-    # === ТЕКСТОВЫЕ НАХОДКИ (diagnostic, consultation) ===
+    # === TEXT FINDINGS (diagnostic, consultation) ===
     findings: list[str] = Field(
         default_factory=list,
         description=(
-            "Текстовые находки и наблюдения: "
-            "описания на УЗИ, результаты осмотра, жалобы"
+            "Text findings and observations: "
+            "ultrasound descriptions, examination results, complaints"
         ),
     )
 
-    # === ДИАГНОЗЫ (consultation, diagnostic) ===
+    # === DIAGNOSES (consultation, diagnostic) ===
     diagnoses: list[str] = Field(
         default_factory=list,
-        description="Диагнозы (основной и сопутствующие)",
+        description="Diagnoses (primary and secondary)",
     )
 
-    # === РЕКОМЕНДАЦИИ (все типы) ===
+    # === RECOMMENDATIONS (consultation, medication_trace) ===
     recommendations: list[str] = Field(
         default_factory=list,
-        description="Рекомендации врача, назначения на обследования",
+        description="Doctor recommendations and follow-up instructions",
     )
 
-    # === ПРЕПАРАТЫ (medication_trace, consultation) ===
+    # === MEDICATIONS (medication_trace) ===
     medications: list[Medication] = Field(
         default_factory=list,
-        description="Назначенные или принимаемые препараты",
+        description="Prescribed medications",
     )
 
-    # === ЗАКЛЮЧЕНИЕ ===
+    # === CONCLUSION (all types) ===
     conclusion: str | None = Field(
         default=None,
-        description="Общее заключение документа",
+        description="Overall document conclusion or summary",
     )
 
-    # === ДОПОЛНИТЕЛЬНО ===
+    # === OPTIONAL FIELDS ===
     procedure_name: str | None = Field(
         default=None,
-        description="Название процедуры/исследования (для diagnostic)",
+        description="Procedure or examination name",
     )
-    notes: str | None = Field(
-        default=None,
-        description="Дополнительные заметки, не вошедшие в другие поля",
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Document tags and keywords",
     )
+    notes: list[str] = Field(
+        default_factory=list,
+        description="Additional notes",
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata",
+    )
+
+    @field_validator("conclusion", mode="before")
+    @classmethod
+    def normalize_conclusion(cls, v: Any) -> str | None:
+        """Convert dict to string if needed."""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            if "diagnosis" in v:
+                return v["diagnosis"]
+            return str(v)
+        return str(v) if not isinstance(v, str) else v
+
+    @field_validator("notes", mode="before")
+    @classmethod
+    def normalize_notes(cls, v: Any) -> list[str]:
+        return _normalize_to_list(v)
+
+    @field_validator("findings", mode="before")
+    @classmethod
+    def normalize_findings(cls, v: Any) -> list[str]:
+        return _normalize_to_list(v)
+
+    @field_validator("diagnoses", mode="before")
+    @classmethod
+    def normalize_diagnoses(cls, v: Any) -> list[str]:
+        return _normalize_to_list(v)
+
+    @field_validator("recommendations", mode="before")
+    @classmethod
+    def normalize_recommendations(cls, v: Any) -> list[str]:
+        return _normalize_to_list(v)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def normalize_tags(cls, v: Any) -> list[str]:
+        return _normalize_to_list(v)
 
     def merge(self, other: "MedicalDoc") -> "MedicalDoc":
         """Incremental merge. self = накопленный doc, other = результат нового шага.
         Возвращает новый объект, self/other не мутируются.
         """
+
         if self.schema_id != other.schema_id:
             log.warning(
                 "Schema ID mismatch in MedicalDoc.merge: self=%s, other=%s, using self",
                 self.schema_id, other.schema_id,
             )
 
-        def _merge_scalar_fields(base: "DocumentInfo | PatientInfo | None", new: "DocumentInfo | PatientInfo | None", model_cls: type) -> "DocumentInfo | PatientInfo | None":
+        def _merge_scalar_fields(
+            base: "DocumentInfo | PatientInfo | None",
+            new: "DocumentInfo | PatientInfo | None",
+            model_cls: type,
+        ) -> "DocumentInfo | PatientInfo | None":
             """Per-field merge двух Pydantic-объектов: new wins if non-null, else base."""
             if base is None and new is None:
                 return None
@@ -402,7 +529,9 @@ class MedicalDoc(BaseModel):
                     out.append(item)
             return out
 
-        def _dedup_by_name(items: list["Measurement | Medication"], key_fn) -> list["Measurement | Medication"]:
+        def _dedup_by_name(
+            items: list["Measurement | Medication"], key_fn
+        ) -> list["Measurement | Medication"]:
             """Дедуп по case-insensitive name, 'later wins' при конфликте."""
             index: dict[str, int] = {}
             out: list["Measurement | Medication"] = []

@@ -34,8 +34,6 @@ plan:
   goal: Extract patient medical information and diagnostic findings.
   action: PLAN
   schema_name: lab
-  assumptions:
-  - Document contains blood test results
   steps:
   - id: 1
     title: Extract patient details

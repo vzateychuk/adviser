@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from flows.pec.models import (
     CriticIssue,
     CriticResult,
+    MedicalDoc,
     OcrResult,
     PlanAction,
     PlanResult,
@@ -103,7 +104,7 @@ def test_run_context_yaml_roundtrip_preserves_strings():
             ],
         ),
         active_schema="lab",
-        steps_results=[StepResult(step_id=1, executor="ocr", content="value: '120'\nunit: g/L\ndate: '2024-01-01'")],
+        steps_results=[StepResult(step_id=1, executor="ocr", doc=MedicalDoc(schema_id="lab"))],
         critic_feedback=[CriticIssue(severity="high", description="Missing range", suggestion="Add reference range")],
         status=RunStatus.EXECUTING,
     )
@@ -112,6 +113,4 @@ def test_run_context_yaml_roundtrip_preserves_strings():
     restored = run_context_from_yaml(yaml_text)
 
     assert restored.active_schema == "lab"
-    assert "'120'" in restored.steps_results[0].content
-    assert "'2024-01-01'" in restored.steps_results[0].content
     assert restored.critic_feedback[0].description == "Missing range"

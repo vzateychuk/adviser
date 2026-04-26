@@ -29,7 +29,6 @@ plan:
   action: PLAN
   goal: Extract lab data
   schema_name: lab
-  assumptions: []
   steps:
     - id: 1
       title: Extract lab values

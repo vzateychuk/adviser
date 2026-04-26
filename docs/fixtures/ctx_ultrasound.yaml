@@ -76,9 +76,6 @@ plan:
   goal: Extract ultrasound results from the patient's medical record
   action: PLAN
   schema_name: diagnostic
-  assumptions:
-  - Document is a medical record
-  - Contains ultrasound images
   steps:
   - id: 1
     title: Identify and extract all ultrasound images from the document

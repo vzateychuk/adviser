@@ -24,7 +24,6 @@ def mock_planner_structured(req: ChatRequest, response_model: type) -> PlannerOu
             action="SKIP",
             goal="Document is not medical",
             schema_name=None,
-            assumptions=[],
             steps=[],
         )
     
@@ -32,7 +31,6 @@ def mock_planner_structured(req: ChatRequest, response_model: type) -> PlannerOu
         action="PLAN",
         goal="Extract lab results",
         schema_name="lab",
-        assumptions=["Document is in Russian"],
         steps=[
             PlanStepSchema(
                 id=1,
@@ -161,7 +159,6 @@ def test_planner_output_schema_to_plan_result():
         action="PLAN",
         goal="Test goal",
         schema_name="lab",
-        assumptions=["test assumption"],
         steps=[
             PlanStepSchema(
                 id=1,

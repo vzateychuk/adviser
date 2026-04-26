@@ -94,15 +94,12 @@ class Orchestrator:
             result = await self._executor.execute(context, step_id)
             context.steps_results.append(result)
             
-            # Incremental merge into accumulated doc
-            if result.doc is not None:
-                if context.doc is None:
-                    context.doc = result.doc
-                else:
-                    context.doc = context.doc.merge(result.doc)
+            # Merge incrementally; result.doc is always non-None per Pydantic validation
+            context.doc = context.doc.merge(result.doc) if context.doc else result.doc
         
         context.status = RunStatus.COMPLETED
         log.info("Executed %d steps", len(context.steps_results))
+
 
     async def critic(self, context: RunContext) -> None:
         """Review all executed steps sequentially, stopping on first failure.

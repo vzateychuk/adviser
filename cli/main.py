@@ -43,8 +43,8 @@ def main(
 app.command()(ask)
 app.command()(plan)
 app.command()(exec)
-app.command("critic")(critic)
-app.command("ocr-flow")(ocr_flow)
+app.command()(critic)
+app.command()(ocr_flow)
 
 if __name__ == "__main__":
     app()
