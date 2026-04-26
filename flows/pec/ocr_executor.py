@@ -78,5 +78,4 @@ class OcrExecutor:
             step_id=step.id,
             executor="ocr",
             doc=doc,
-            assumptions=[],
         )
