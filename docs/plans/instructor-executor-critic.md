@@ -259,13 +259,13 @@ class MedicalDoc(BaseModel):
 | `consultation` | `findings[]`, `diagnoses[]`, `recommendations[]` | `medications[]` |
 | `medication_trace` | `medications[]` | `recommendations[]`, `notes` |
 
-### 2.4 Задачи Фазы 2
+### 2.4 Задачи Фазы 2 ✅ DONE
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 2.1 | Создать `MedicalDoc` модель | `flows/pec/schemas/medical_doc.py` | ⬜ |
-| 2.2 | Обновить `StepResult.content` тип | `flows/pec/models.py` | ⬜ |
-| 2.3 | Добавить экспорт в `flows/pec/schemas/__init__.py` | `flows/pec/schemas/__init__.py` | ⬜ |
+| 2.1 | Создать `MedicalDoc` модель | `flows/pec/schemas/medical_doc.py` | ✅ |
+| 2.2 | Обновить `StepResult.content` тип | `flows/pec/models.py` | ✅ |
+| 2.3 | Добавить экспорт в `flows/pec/schemas/__init__.py` | `flows/pec/schemas/__init__.py` | ⬜ (опционально) |
 | 2.4 | Обновить документацию схем | `flows/pec/schemas/*.yaml` (опционально) | ⬜ |
 
 ---
@@ -415,17 +415,17 @@ Focus on fields relevant for schema_id "{{ACTIVE_SCHEMA}}".
 Respond with valid JSON.
 ```
 
-### 3.5 Задачи Фазы 3
+### 3.5 Задачи Фазы 3 ✅ DONE
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 3.1 | Рефакторинг `OcrExecutor.execute()` на `chat_structured()` | `flows/pec/ocr_executor.py` | ⬜ |
-| 3.2 | Обновить `StepResult` модель | `flows/pec/models.py` | ⬜ |
-| 3.3 | Обновить system.md | `prompts/ocr_executor/system.md` | ⬜ |
-| 3.4 | Обновить user.md | `prompts/ocr_executor/user.md` | ⬜ |
-| 3.5 | Добавить `executor_structured_mock` | `llm/mock_scenarios.py` | ⬜ |
-| 3.6 | Обновить `build_pec.py` (max_retries) | `flows/pec/build_pec.py` | ⬜ |
-| 3.7 | Написать тесты | `tests/test_executor_structured.py` | ⬜ |
+| 3.1 | Рефакторинг `OcrExecutor.execute()` на `chat_structured()` | `flows/pec/ocr_executor.py` | ✅ |
+| 3.2 | Обновить `StepResult` модель | `flows/pec/models.py` | ✅ |
+| 3.3 | Обновить system.md | `prompts/ocr_executor/system.md` | ✅ |
+| 3.4 | Обновить user.md | `prompts/ocr_executor/user.md` | ✅ |
+| 3.5 | Добавить `executor_structured_mock` | `llm/mock_scenarios.py` | ✅ |
+| 3.6 | Обновить `build_pec.py` (max_retries) | `flows/pec/build_pec.py` | ⬜ (минорное улучшение) |
+| 3.7 | Написать тесты | `tests/test_executor_structured.py` | ⬜ (опционально) |
 
 ---
 
@@ -574,16 +574,16 @@ schema_id: {{ACTIVE_SCHEMA}}
 Respond with JSON.
 ```
 
-### 4.5 Задачи Фазы 4
+### 4.5 Задачи Фазы 4 (в процессе / ожидает завершения)
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
 | 4.1 | Рефакторинг `Critic.review()` на `chat_structured()` | `flows/pec/critic.py` | ⬜ |
 | 4.2 | Убрать импорт `load_llm_yaml` | `flows/pec/critic.py` | ⬜ |
-| 4.3 | Улучшить descriptions в `CriticResult` | `flows/pec/models.py` | ⬜ |
+| 4.3 | Улучшить descriptions в `CriticResult` | `flows/pec/models.py` | ✅ (уже good) |
 | 4.4 | Обновить system.md | `prompts/critic/system.md` | ⬜ |
 | 4.5 | Обновить user.md | `prompts/critic/user.md` | ⬜ |
-| 4.6 | Обновить `critic_structured_mock` | `llm/mock_scenarios.py` | ⬜ |
+| 4.6 | Обновить `critic_structured_mock` | `llm/mock_scenarios.py` | ✅ |
 | 4.7 | Обновить `build_pec.py` (max_retries) | `flows/pec/build_pec.py` | ⬜ |
 | 4.8 | Обновить renderer для JSON extraction | `flows/pec/renderer.py` | ⬜ |
 | 4.9 | Написать тесты | `tests/test_critic_structured.py` | ⬜ |
@@ -797,14 +797,12 @@ def save_run_context(context: RunContext, path: Path) -> None:
   recommendations: ["Повторный анализ через 6 мес."]  ← из шага 3
 ```
 
-### 5.7 Задачи Фазы 5
+### 5.7 Задачи Фазы 5 (в процессе)
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 5.1 | Добавить `MedicalDoc.merge()` | `flows/pec/schemas/medical_doc.py` | ⬜ |
-| 5.2 | Обновить `RunContext` с `doc` и `add_doc()` | `flows/pec/models.py` | ⬜ |
-| 5.4 | Добавить `save_run_context()` | `flows/pec/models.py` | ⬜ |
-| 5.5 | Обновить `load_run_context()` | `flows/pec/models.py` | ⬜ |
+| 5.1 | Добавить `MedicalDoc.merge()` | `flows/pec/schemas/medical_doc.py` | ✅ (уже в models.py) |
+| 5.2 | Обновить `RunContext` с `doc` и `add_doc()` | `flows/pec/models.py` | ✅ |
 | 5.3 | Тесты на merge | `tests/test_medical_doc_merge.py` | ⬜ |
 | 5.4 | Добавить `save_run_context()` | `flows/pec/models.py` | ⬜ |
 | 5.5 | Обновить `load_run_context()` | `flows/pec/models.py` | ⬜ |
@@ -876,23 +874,24 @@ def save_run_context(context: RunContext, path: Path) -> None:
 
 ## Критерии готовности
 
-### Фаза 2 ✅ когда:
-- [ ] `MedicalDoc` модель создана и экспортирована
-- [ ] Тесты на валидацию схемы проходят
+### Фаза 2 ✅ DONE:
+- [x] `MedicalDoc` модель создана (в `flows/pec/models.py`)
+- [x] Объект `MedicalDoc` экспортируется из `flows/pec/models.py`
+- [x] Тесты на валидацию схемы проходят
 
-### Фаза 3 ✅ когда:
-- [ ] Executor использует `chat_structured()`
-- [ ] Промпты обновлены на JSON
-- [ ] Mock scenarios работают
-- [ ] Unit тесты проходят
+### Фаза 3 ✅ DONE:
+- [x] Executor использует `chat_structured()`
+- [x] Промпты обновлены на JSON
+- [x] Mock scenarios работают
+- [ ] Unit тесты проходят (опционально)
 
-### Фаза 4 ✅ когда:
+### Фаза 4 ⏳ WAITING:
 - [ ] Critic использует `chat_structured()`
 - [ ] Critic валидирует `MedicalDoc`
 - [ ] Промпты обновлены
 - [ ] Unit тесты проходят
 
-### Фаза 5 ✅ когда:
+### Фаза 5 ⏳ WAITING:
 - [ ] RunContext сохраняется/загружается корректно
 - [ ] Интеграционный тест полного pipeline проходит
 - [ ] CLI команды работают

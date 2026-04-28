@@ -28,21 +28,21 @@ def critic(
     )
     
     try:
-        context = load_run_context(Path(context_yaml))
+        runCtx = load_run_context(Path(context_yaml))
         
-        if context.plan is None:
+        if runCtx.plan is None:
             log.error("Plan is not set in context")
             raise typer.Exit(code=2)
         
-        if not context.steps_results:
+        if not runCtx.steps_results:
             log.error("No step results to review. Run 'exec' first.")
             raise typer.Exit(code=2)
         
-        log.info("Reviewing %d steps", len(context.steps_results))
-        asyncio.run(orchestrator.critic(context))
+        log.info("Reviewing %d steps", len(runCtx.steps_results))
+        asyncio.run(orchestrator.critic(runCtx))
         
-        if context.status == RunStatus.FAILED:
-            log.error("Review failed: %d issues found", len(context.critic_feedback))
+        if runCtx.status == RunStatus.FAILED:
+            log.error("Review failed: %d issues found", len(runCtx.critic_feedback))
             raise typer.Exit(code=1)
         
         log.info("All steps approved")
@@ -51,5 +51,5 @@ def critic(
         log.exception("Review failed: %s", e)
         raise typer.Exit(code=2)
     
-    typer.echo(run_context_to_yaml(context), nl=False)
+    typer.echo(run_context_to_yaml(runCtx), nl=False)
     raise typer.Exit(code=0)

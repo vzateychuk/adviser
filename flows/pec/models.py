@@ -28,6 +28,19 @@ class PlanAction(StrEnum):
     PLAN = "PLAN"
     SKIP = "SKIP"
 
+    @field_validator("action", mode="before")
+    @classmethod
+    def normalize_action(cls, v: Any) -> str:
+        """Normalize action to uppercase PLAN/SKIP. Default to PLAN if unknown."""
+        if v is None:
+            return PlanAction.PLAN.value
+        if isinstance(v, str):
+            normalized = v.strip().upper()
+            if normalized == "SKIP":
+                return PlanAction.SKIP.value
+            return PlanAction.PLAN.value
+        return PlanAction.PLAN.value
+
 
 class RunStatus(StrEnum):
     """Pipeline execution status."""
@@ -380,6 +393,57 @@ class MedicalDoc(BaseModel):
     schema_id: Literal["lab", "diagnostic", "consultation", "medication_trace"] = Field(
         description="Document type determined by Planner",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def ensure_schema_id(cls, data: Any) -> Any:
+        """
+        Ensure schema_id is present. If missing, set default to 'lab' and log warning.
+        """
+        if isinstance(data, dict):
+            if "schema_id" not in data or not data.get("schema_id"):
+                log.warning("schema_id is missing or empty in MedicalDoc input; defaulting to 'lab'. Input keys: %s", list(data.keys()))
+                data["schema_id"] = "lab"
+        return data
+
+    @field_validator("schema_id", mode="before")
+    @classmethod
+    def normalize_schema_id(cls, v: Any) -> str:
+        """Normalize schema_id to one of allowed values. Default to 'lab' if unknown."""
+        if v is None:
+            log.warning("schema_id is None; defaulting to 'lab'")
+            return "lab"
+        if not isinstance(v, str):
+            v = str(v)
+        normalized = v.strip().lower()
+        SCHEMA_MAP = {
+            "lab": "lab",
+            "лабораторн": "lab",
+            "анализ": "lab",
+            "laboratory": "lab",
+            "lab test": "lab",
+            "diagnostic": "diagnostic",
+            "ультразвук": "diagnostic",
+            "рентген": "diagnostic",
+            "кт": "diagnostic",
+            "мрт": "diagnostic",
+            "диагност": "diagnostic",
+            "diagnosis": "diagnostic",
+            "consultation": "consultation",
+            "терапевт": "consultation",
+            "врач": "consultation",
+            "консульт": "consultation",
+            "consult": "consultation",
+            "medication_trace": "medication_trace",
+            "рецепт": "medication_trace",
+            "медикамент": "medication_trace",
+            "medication": "medication_trace",
+            "prescription": "medication_trace",
+        }
+        mapped = SCHEMA_MAP.get(normalized, "lab")
+        if mapped == "lab" and normalized not in {"lab", "лабораторн", "анализ", "laboratory", "lab test"}:
+            log.warning("schema_id '%s' not recognized; defaulting to 'lab'", normalized)
+        return mapped
 
     # === COMMON SECTIONS ===
     document: DocumentInfo = Field(

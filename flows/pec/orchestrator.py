@@ -37,45 +37,45 @@ class Orchestrator:
         
         All methods mutate the context in place. No reassignment needed.
         """
-        ctx = RunContext(user_request=file_path, document_content=doc_content)
-        await self.plan(ctx)
+        runCtx = RunContext(user_request=file_path, document_content=doc_content)
+        await self.plan(runCtx)
         
-        if ctx.status == RunStatus.SKIPPED:
+        if runCtx.status == RunStatus.SKIPPED:
             return OcrResult(
                 document_path=file_path,
-                schema_name=ctx.active_schema,
+                schema_name=runCtx.active_schema,
                 context="",
-                step_results=ctx.steps_results,
+                step_results=runCtx.steps_results,
                 retry_count=0,
-                status=ctx.status,
+                status=runCtx.status,
             )
         
         # 1. Execute all steps via executor (no critic)
-        await self.execute(ctx)
+        await self.execute(runCtx)
         
         # 2. Review all results via critic (mutates ctx in place)
-        await self.critic(ctx)
+        await self.critic(runCtx)
         
         return OcrResult(
             document_path=file_path,
-            schema_name=ctx.active_schema,
-            context=ctx.doc.model_dump_json() if ctx.doc else "",
-            step_results=ctx.steps_results,
+            schema_name=runCtx.active_schema,
+            context=runCtx.doc.model_dump_json() if runCtx.doc else "",
+            step_results=runCtx.steps_results,
             retry_count=0,
-            status=ctx.status,
+            status=runCtx.status,
         )
 
-    async def plan(self, ctx: RunContext) -> None:
+    async def plan(self, runCtx: RunContext) -> None:
         """Populate the run context with planner output and derived schema state.
         Mutates the context in place.
         """
         plan = await self._planner.plan(
-            user_request=ctx.user_request,
-            document_content=ctx.document_content,
+            user_request=runCtx.user_request,
+            document_content=runCtx.document_content,
         )
-        ctx.plan = plan
-        ctx.active_schema = plan.schema_name
-        ctx.status = (
+        runCtx.plan = plan
+        runCtx.active_schema = plan.schema_name
+        runCtx.status = (
             RunStatus.SKIPPED if plan.action == PlanAction.SKIP else RunStatus.PLANNED
         )
 

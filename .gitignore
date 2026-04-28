@@ -12,7 +12,6 @@
 *.env
 .data/
 docs/medocs/
-repo_map.md
 validate.py
 
 # Python
