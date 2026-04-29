@@ -5,15 +5,8 @@ schema_meta:
   intended_use:
     - physician_consultation
     - outpatient_note
-selection_hints:
-  aliases:
-    - консультация
-    - physician
-    - note
-critic_rules:
-  must_verify:
-    - dates preserved
-    - surnames preserved
-document: {}
-patient: {}
-consultation: {}
+  selection_hints:
+    aliases:
+      - консультация
+      - physician
+      - note

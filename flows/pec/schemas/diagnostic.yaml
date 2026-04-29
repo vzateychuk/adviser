@@ -6,15 +6,8 @@ schema_meta:
     - ultrasound
     - xray
     - imaging
-selection_hints:
-  aliases:
-    - узи
-    - xray
-    - ultrasound
-critic_rules:
-  must_verify:
-    - dates preserved
-    - measurements preserved
-document: {}
-patient: {}
-diagnostic: {}
+  selection_hints:
+    aliases:
+      - узи
+      - xray
+      - ultrasound

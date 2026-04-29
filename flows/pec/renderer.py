@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from typing import Any, Callable, Sequence
-import json
 
 from flows.pec.models import CriticIssue, CriticResult, MedicalDoc, PlanStep, RunContext, StepResult
-from flows.pec.schema_catalog import SchemaDefinition
 from tools.prompt import render_template
 
 
@@ -15,7 +13,6 @@ def render_step_template(
     *,
     previous_results: str = "",
     critic_feedback: str = "",
-    schema: SchemaDefinition | None = None,
 ) -> str:
     values = {
         "USER_REQUEST": context.user_request,
@@ -27,11 +24,6 @@ def render_step_template(
         "STEP_SUCCESS_CRITERIA": "\n".join(step.success_criteria),
         "PREVIOUS_RESULTS": previous_results,
         "CRITIC_FEEDBACK": critic_feedback,
-        "SCHEMA_ID": schema.schema_id if schema else (context.active_schema or ""),
-        "SCHEMA_TITLE": schema.title or "" if schema else "",
-        "SCHEMA_REQUIRED_BLOCKS": "\n".join(schema.required_blocks) if schema else "",
-        "SCHEMA_CRITIC_RULES": "\n".join(schema.critic_rules) if schema else "",
-        "SCHEMA_YAML": schema.prompt_excerpt if schema else "",
     }
     return render_template(template, values)
 
@@ -58,8 +50,6 @@ def render_critic_template(
     step: PlanStep,
     result: StepResult,
     template: str,
-    *,
-    schema: SchemaDefinition | None = None,
 ) -> str:
     criteria_text = "\n".join(f"- {c}" for c in step.success_criteria)
     step_text = (
@@ -77,8 +67,6 @@ def render_critic_template(
         "STEP_RESULT": step_result_json,
         "SUCCESS_CRITERIA": criteria_text,
         "CRITIC_FEEDBACK": format_critic_feedback_items(context.critic_feedback),
-        "SCHEMA_YAML": schema.prompt_excerpt if schema else "",
-        "SCHEMA_CRITIC_RULES": "\n".join(schema.critic_rules) if schema else "",
     }
     return render_template(template, values)
 

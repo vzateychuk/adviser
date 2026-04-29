@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 import logging
 from typing import Literal
-
 from pydantic import BaseModel, Field, model_validator
 
 from flows.pec.models import PlanAction, PlanResult, PlanStep, StepType
@@ -14,19 +12,12 @@ from common.types import ChatRequest, Message
 
 log = logging.getLogger(__name__)
 
-
 # =============================================================================
 # PLANNER OUTPUT SCHEMA (optimized for instructor)
 # =============================================================================
 
-
 class PlanStepSchema(BaseModel):
-    """Single extraction step in the plan.
-
-    Field descriptions are injected into the JSON schema by instructor,
-    improving LLM compliance with the expected format.
-    """
-
+    """Single extraction step in the plan. Field descriptions are injected into the JSON schema by instructor, improving LLM compliance with the expected format."""
     id: int = Field(
         ge=1,
         description="Step number starting from 1",
@@ -45,26 +36,22 @@ class PlanStepSchema(BaseModel):
     )
     output: str = Field(
         min_length=1,
-        description="Must match schema_name exactly (e.g., 'lab', 'consultation')",
+        description="Must match schema_name exactly (e.g., 'lab', 'consultation')"
     )
     success_criteria: list[str] = Field(
-        default_factory=list,
+        min_length=1,
         description=(
-            "Verification criteria for the Critic. "
-            "If empty, defaults will be loaded from the schema catalog."
+            "Verification criteria the Critic will check. "
+            "Must not be empty. List specific values, formats, and completeness rules "
+            "relevant to this document type."
         ),
     )
 
-
 class PlannerOutputSchema(BaseModel):
-    """Structured output schema for the Planner LLM call.
-
-    This schema is passed to instructor which injects it as JSON schema
-    into the API call. Field descriptions guide the LLM toward correct output.
-
+    """Structured output schema for the Planner LLM call. This schema is passed to instructor which injects it as JSON schema into the API call. Field descriptions guide the LLM toward correct output.
+    
     Design notes:
-    - We use a separate schema from PlanResult to keep LLM-facing and
-      internal representations decoupled
+    - We use a separate schema from PlanResult to keep LLM-facing and internal representations decoupled
     - Descriptions are optimized for LLM understanding, not code docs
     - Validators run after LLM output is parsed, catching edge cases
     """
@@ -118,7 +105,6 @@ class PlannerOutputSchema(BaseModel):
             goal=self.goal,
             action=PlanAction(self.action),
             schema_name=self.schema_name,
-            
             steps=[
                 PlanStep(
                     id=step.id,
@@ -163,10 +149,14 @@ class Planner:
         self._user_template = user_template
         self._schema_catalog = schema_catalog
 
-    async def plan(self, *, user_request: str, document_content: str) -> PlanResult:
-        """Generate an extraction plan using structured LLM output.
-
-        The method:
+    async def plan(
+        self,
+        *,
+        user_request: str,
+        document_content: str,
+    ) -> PlanResult:
+        """Generate an extraction plan using structured LLM output. The method:
+        
         1. Renders the prompt with document content and schema catalog
         2. Calls LLM with PlannerOutputSchema as response_model
         3. Validates schema selection against the catalog
@@ -220,7 +210,6 @@ class Planner:
 
         Even with structured outputs, we still need some normalization:
         - Resolve schema aliases to canonical IDs
-        - Inject default success criteria when LLM omits them
         - Generate fallback step if LLM returns empty steps for PLAN action
 
         This keeps the Planner tolerant to minor LLM deviations while
@@ -232,7 +221,6 @@ class Planner:
                 goal=output.goal or "Document skipped",
                 action=PlanAction.SKIP,
                 schema_name=None,
-                
                 steps=[],
             )
 
@@ -243,23 +231,19 @@ class Planner:
                 f"Planner selected unknown schema: {output.schema_name!r}. "
                 f"Allowed: {', '.join(self._schema_catalog.ids())}"
             )
-
-        # Get default criteria from schema catalog
-        schema_def = self._schema_catalog.get(schema_name)
-
-        # Process steps with default criteria injection
+        
+        # Process steps
         steps: list[PlanStep] = []
         for step in output.steps:
-            criteria = step.success_criteria if step.success_criteria else schema_def.critic_rules
-
             steps.append(
                 PlanStep(
                     id=step.id,
                     title=step.title or f"Extract {schema_name} data",
                     type=step.type,
                     input=step.input or "document_content",
-                    output=schema_name,  # Always use resolved schema name
-                    success_criteria=criteria,
+                    output=schema_name,
+                    # Always use resolved schema name
+                    success_criteria=step.success_criteria,
                 )
             )
 
@@ -274,6 +258,5 @@ class Planner:
             goal=output.goal,
             action=PlanAction.PLAN,
             schema_name=schema_name,
-            
             steps=steps,
         )

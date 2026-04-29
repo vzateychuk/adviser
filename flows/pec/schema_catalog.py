@@ -13,9 +13,6 @@ class SchemaDefinition(BaseModel):
     category: str | None = None
     intended_use: list[str] = Field(default_factory=list)
     aliases: list[str] = Field(default_factory=list)
-    key_signals: list[str] = Field(default_factory=list)
-    required_blocks: list[str] = Field(default_factory=list)
-    critic_rules: list[str] = Field(default_factory=list)
     raw: dict
 
     @property
@@ -42,8 +39,6 @@ class SchemaCatalog:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             meta = data.get("schema_meta", {})
             selection = data.get("selection_hints", {})
-            extraction = data.get("extraction_contract", {})
-            critic = data.get("critic_rules", {})
             schema_id = meta.get("id")
             if not schema_id:
                 raise ValueError(f"Schema {path} is missing schema_meta.id")
@@ -56,9 +51,6 @@ class SchemaCatalog:
                 category=meta.get("category"),
                 intended_use=list(meta.get("intended_use", [])),
                 aliases=list(selection.get("aliases", [])),
-                key_signals=list(selection.get("key_signals", [])),
-                required_blocks=list(extraction.get("required_blocks", [])),
-                critic_rules=list(critic.get("must_verify", [])),
                 raw=data,
             )
         return schemas
@@ -130,13 +122,11 @@ class SchemaCatalog:
             schema = self._schemas[schema_id]
             aliases = ", ".join(schema.aliases) if schema.aliases else "-"
             intended = ", ".join(schema.intended_use) if schema.intended_use else "-"
-            blocks = ", ".join(schema.required_blocks) if schema.required_blocks else "-"
             parts.append(
                 f"- id: {schema.schema_id}\n"
                 f"  title: {schema.title or '-'}\n"
                 f"  category: {schema.category or '-'}\n"
                 f"  intended_use: {intended}\n"
                 f"  aliases: {aliases}\n"
-                f"  required_blocks: {blocks}"
             )
         return "\n".join(parts).strip()

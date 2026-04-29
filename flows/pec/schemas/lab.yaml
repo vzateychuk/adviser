@@ -6,40 +6,8 @@ schema_meta:
     - biochemistry
     - hormones
     - blood_panel
-selection_hints:
-  aliases:
-    - анализы
-    - лаборатория
-    - blood test
-  key_signals:
-    - analyte
-    - reference range
-    - unit
-    - numeric value
-extraction_contract:
-  required_blocks:
-    - document
-    - patient
-    - laboratory_panel
-critic_rules:
-  must_verify:
-    - every date matches source
-    - every numeric value matches source
-    - every unit matches source
-    - surnames are preserved exactly when present
-    - no analyte is invented
-    - no analyte is dropped
-document:
-  date: null
-  org: null
-  source_ref: null
-patient:
-  full_name: null
-  surname: null
-  birth_date: null
-laboratory_panel:
-  results:
-    - analyte: null
-      value: null
-      unit: null
-      reference_range: null
+  selection_hints:
+    aliases:
+      - анализы
+      - лаборатория
+      - blood test

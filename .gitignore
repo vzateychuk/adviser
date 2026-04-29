@@ -11,7 +11,7 @@
 # App
 *.env
 .data/
-docs/medocs/
+docs/
 validate.py
 
 # Python
