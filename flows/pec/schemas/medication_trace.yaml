@@ -5,7 +5,7 @@ schema_meta:
   intended_use:
     - prescriptions
     - medication_history
-  selection_hints:
-    aliases:
-      - prescription
-      - medication
+selection_hints:
+  aliases:
+    - prescription
+    - medication

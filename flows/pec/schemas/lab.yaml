@@ -6,8 +6,8 @@ schema_meta:
     - biochemistry
     - hormones
     - blood_panel
-  selection_hints:
-    aliases:
-      - анализы
-      - лаборатория
-      - blood test
+selection_hints:
+  aliases:
+    - анализы
+    - лаборатория
+    - blood test

@@ -16,6 +16,7 @@ validate.py
 
 # Python
 __pycache__/
+.tmp-tests/
 .pytest_cache/
 .venv/
 dist/

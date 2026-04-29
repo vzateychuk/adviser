@@ -213,6 +213,36 @@ def _normalize_to_list(v: Any) -> list[str]:
     return [str(v)]
 
 
+class OrganizationInfo(BaseModel):
+    """Medical institution information."""
+
+    name: str | None = Field(
+        default=None,
+        description="Medical institution name",
+    )
+    location: str | None = Field(
+        default=None,
+        description="Address or location",
+    )
+    department: str | None = Field(
+        default=None,
+        description="Department or unit",
+    )
+
+
+class DoctorInfo(BaseModel):
+    """Doctor information."""
+
+    name: str | None = Field(
+        default=None,
+        description="Doctor full name",
+    )
+    specialty: str | None = Field(
+        default=None,
+        description="Doctor specialty (e.g., 'Ultrasound diagnostic', 'Therapist')",
+    )
+
+
 class DocumentInfo(BaseModel):
     """Document metadata."""
 
@@ -220,17 +250,13 @@ class DocumentInfo(BaseModel):
         default=None,
         description="Document date as written in source (e.g., '2020-02-09')",
     )
-    organization: str | None = Field(
+    organization: OrganizationInfo | None = Field(
         default=None,
-        description="Medical institution name",
+        description="Medical institution information",
     )
-    doctor: str | None = Field(
+    doctor: DoctorInfo | None = Field(
         default=None,
-        description="Doctor full name",
-    )
-    specialty: str | None = Field(
-        default=None,
-        description="Doctor specialty (e.g., 'Ultrasound diagnostic', 'Therapist')",
+        description="Doctor information",
     )
 
 

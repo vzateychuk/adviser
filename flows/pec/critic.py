@@ -44,13 +44,11 @@ class Critic:
         step = next((item for item in context.plan.steps if item.id == res.step_id), None)
         if step is None:
             raise ValueError(f"Plan step not found: {res.step_id}")
-        schema = self._schema_catalog.get(context.active_schema) if context.active_schema else None
         user_content = render_critic_template(
             context,
             step,
             res,
             self._user_template,
-            schema=schema,
         )
 
         resp = await self._llm.chat(

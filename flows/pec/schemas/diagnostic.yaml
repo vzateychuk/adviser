@@ -6,8 +6,8 @@ schema_meta:
     - ultrasound
     - xray
     - imaging
-  selection_hints:
-    aliases:
-      - узи
-      - xray
-      - ultrasound
+selection_hints:
+  aliases:
+    - узи
+    - xray
+    - ultrasound

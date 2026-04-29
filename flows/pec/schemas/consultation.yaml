@@ -5,8 +5,8 @@ schema_meta:
   intended_use:
     - physician_consultation
     - outpatient_note
-  selection_hints:
-    aliases:
-      - консультация
-      - physician
-      - note
+selection_hints:
+  aliases:
+    - консультация
+    - physician
+    - note

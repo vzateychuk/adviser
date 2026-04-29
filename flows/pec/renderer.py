@@ -137,7 +137,7 @@ def summarize_previous_results(doc: MedicalDoc | None, *, max_fields: int = 10) 
         # 2. Patient & Document core
         ("patient.full_name", lambda: doc.patient.full_name, None),
         ("document.date", lambda: doc.document.date, None),
-        ("document.organization", lambda: doc.document.organization, None),
+        ("document.organization", lambda: doc.document.organization.name if doc.document.organization else None, None),
         # 3. More patient/document info
         ("patient.birth_date", lambda: doc.patient.birth_date, None),
         ("procedure_name", lambda: doc.procedure_name, None),
@@ -149,8 +149,8 @@ def summarize_previous_results(doc: MedicalDoc | None, *, max_fields: int = 10) 
         ("measurements", lambda: _format_list_count(doc.measurements, lambda m: m.name), None),
         ("medications", lambda: _format_list_count(doc.medications, lambda med: med.name), None),
         # 5. Other scalars
-        ("document.doctor", lambda: doc.document.doctor, None),
-        ("document.specialty", lambda: doc.document.specialty, None),
+("document.doctor", lambda: doc.document.doctor.name if doc.document.doctor else None, None),
+    ("document.specialty", lambda: doc.document.doctor.specialty if doc.document.doctor else None, None),
         ("patient.gender", lambda: doc.patient.gender, None),
         # 6. notes (в конце)
         ("notes", lambda: doc.notes, _safe_truncate),

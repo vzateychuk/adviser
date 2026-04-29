@@ -153,7 +153,8 @@ def executor_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
     Determines schema_id from request content and returns sample data.
     """
     from flows.pec.models import (
-        DocumentInfo, MedicalDoc, Measurement, Medication, PatientInfo,
+        DocumentInfo, DoctorInfo, MedicalDoc, Measurement, Medication,
+        OrganizationInfo, PatientInfo,
     )
 
     user = _last_user(req).lower()
@@ -187,8 +188,15 @@ def executor_structured_mock(req: ChatRequest, response_model: type[T]) -> T:
         schema_id=schema_id,
         document=DocumentInfo(
             date="2024-01-01",
-            organization="Mock Medical Center",
-            doctor="Dr. Mock",
+            organization=OrganizationInfo(
+                name="Mock Medical Center",
+                location="123 Test Street",
+                department="Laboratory",
+            ),
+            doctor=DoctorInfo(
+                name="Dr. Mock",
+                specialty="General Practice",
+            ),
         ),
         patient=PatientInfo(
             full_name="Mock Patient",
