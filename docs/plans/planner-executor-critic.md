@@ -1,9 +1,13 @@
 # План интеграции Instructor: Универсальная схема
 
+> **ВНИМАНИЕ:** Документ требует периодической актуализации. Фактическая реализация может отличаться от описанной. Перед внесением изменений сверяйтесь с кодовой базой.
+
 ## Обзор
 
-Миграция PEC pipeline на structured outputs с использованием **единой универсальной схемы** 
+Миграция PEC pipeline на structured outputs с использованием **единой универсальной схемы**
 для всех типов медицинских документов.
+
+> **Примечание:** Схема `MedicalDoc` находится в `flows/pec/models.py`, а не в отдельном файле `flows/pec/schemas/medical_doc.py`.
 
 ---
 
@@ -11,40 +15,40 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  1. Planner (✅ DONE)                                                    │
-│     • chat_structured() с PlannerOutputSchema                           │
-│     • 4 schema_id: lab, diagnostic, consultation, medication_trace      │
+│ 1. Planner (✅ DONE) │
+│ • chat_structured() с PlannerOutputSchema │
+│ • 4 schema_id: lab, diagnostic, consultation, medication_trace │
 └─────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  2. Рефакторинг на универсальную схему                                  │
-│     • Создать MedicalDoc (единая Pydantic модель)                     │
-│     • schema_id остаётся для роутинга и Critic rules                    │
-│     • Обновить YAML схемы в flows/pec/schemas/                          │
+│ 2. Универсальная схема (✅ DONE) │
+│ • MedicalDoc (единая Pydantic модель) в flows/pec/models.py │
+│ • MedicalDoc.merge() для инкрементального объединения │
+│ • RunContext с полями doc, steps_results │
 └─────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  3. Executor                                                             │
-│     • chat_structured() с MedicalDoc                                    │
-│     • Убрать сырой YAML вывод                                           │
-│     • Обновить промпты                                                  │
+│ 3. Executor (✅ DONE) │
+│ • chat_structured() с MedicalDoc │
+│ • Возвращает StepResult с типизированным doc │
+│ • Инкрементальный merge в orchestrator │
 └─────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  4. Critic                                                               │
-│     • chat_structured() с CriticResult                                  │
-│     • Валидация типизированного MedicalDoc                              │
-│     • Обновить промпты                                                  │
+│ 4. Critic (⏳ В ПРОЦЕССЕ) │
+│ • critic.py — ✅ chat_structured(CriticResult), новая сигнатура │
+│ • renderer.py — ✅ render_critic_final_template() добавлена │
+│ • orchestrator.py — ⬜ всё ещё цикл по step_results (надо исправить) │
+│ • prompts/critic/*.md — ⬜ всё ещё YAML (надо исправить) │
 └─────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  5. Сохранение RunContext                                                │
-│     • Финализация структуры RunContext                                  │
-│     • Сериализация в БД / файл                                          │
-│     • CLI команды для работы с результатами                             │
+│ 5. RunContext (⏳ ЧАСТИЧНО) ✅ Сериализация | ⬜ CLI │
+│ • MedicalDoc.merge() — ✅ DONE (models.py:582-655) │
+│ • RunContext — ✅ DONE (models.py:663-708) │
+│ • Сериализация — ✅ DONE (models.py:766-812) │
+│ • CLI команды — ⬜ не реализовано │
 └─────────────────────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## Фаза 1: Planner ✅ DONE
@@ -65,7 +69,7 @@
 
 ### 2.2 Схема MedicalDoc
 
-**Файл:** `flows/pec/schemas/medical_doc.py`
+**Файл:** `flows/pec/models.py` (класс `MedicalDoc`, строки 406-655)
 
 ```python
 from __future__ import annotations
@@ -263,10 +267,10 @@ class MedicalDoc(BaseModel):
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 2.1 | Создать `MedicalDoc` модель | `flows/pec/schemas/medical_doc.py` | ✅ |
-| 2.2 | Обновить `StepResult.content` тип | `flows/pec/models.py` | ✅ |
-| 2.3 | Добавить экспорт в `flows/pec/schemas/__init__.py` | `flows/pec/schemas/__init__.py` | ⬜ (опционально) |
-| 2.4 | Обновить документацию схем | `flows/pec/schemas/*.yaml` (опционально) | ⬜ |
+| 2.1 | Создать `MedicalDoc` модель | `flows/pec/models.py` | ✅ DONE |
+| 2.2 | Добавить `MedicalDoc.merge()` | `flows/pec/models.py:582-655` | ✅ DONE |
+| 2.3 | Обновить `StepResult` модель с `doc` полем | `flows/pec/models.py:136-153` | ✅ DONE |
+| 2.4 | Создать `RunContext` с `doc` и `add_doc()` | `flows/pec/models.py:663-708` | ✅ DONE |
 
 ---
 
@@ -301,51 +305,51 @@ return StepResult(
 ```
 
 ### 3.3 Изменения в Orchestrator
-
-Orchestrator теперь делает инкрементальный merge после каждого шага:
+Orchestrator делает инкрементальный merge после каждого шага:
 
 ```python
 class Orchestrator:
-    async def execute(self, context: RunContext) -> None:
-        """Выполнить все шаги с инкрементальным merge."""
-        
-        for step in context.plan.steps:
-            # Executor возвращает частичное извлечение
-            step_doc = await self._executor.execute(context, step.id)
-            
-            # Сразу merge в накопительный объект
-            context.add_doc(step_doc)
-            
-            log.debug(
-                "Step %d complete, extraction fields: %d measurements, %d findings",
-                step.id,
-                len(context.doc.measurements),
-                len(context.doc.findings),
-            )
-        
-        # Critic ревьюит финальное состояние (один раз)
-        verdict = await self._critic.review(context)
-        context.critic_feedback = verdict.issues
-        context.status = RunStatus.COMPLETED if verdict.approved else RunStatus.FAILED
+    async def run(self, file_path: str, doc_content: str) -> OcrResult:
+        runCtx = RunContext(user_request=file_path, document_content=doc_content)
+        await self.plan(runCtx)
+
+        if runCtx.status == RunStatus.SKIPPED:
+            return ...
+
+        # 1. Execute все шаги (executor, без critic)
+        await self.execute(runCtx)
+
+        # 2. Review (critic) — после всех шагов
+        await self.critic(runCtx)
+
+        return OcrResult(...)
 ```
 
-### 3.4 Executor возвращает MedicalExtraction напрямую
+Critic вызывается ПОСЛЕ всех шагов, но (пока) проверяет каждый step_result отдельно.
+
+### 3.4 Executor возвращает StepResult с типизированным doc
 
 ```python
 class OcrExecutor:
-    async def execute(self, context: RunContext, step_id: int) -> MedicalDoc:
-        """Выполнить шаг и вернуть типизированное извлечение."""
-        
+    async def execute(self, context: RunContext, step_id: int) -> StepResult:
+        """Выполнить шаг и вернуть типизированный результат."""
+
         # ... render prompts ...
-        
-        return await self._llm.chat_structured(
+
+        doc: MedicalDoc = await self._llm.chat_structured(
             ChatRequest(messages=[...]),
             response_model=MedicalDoc,
             max_retries=self._max_retries,
         )
+
+        return StepResult(
+            step_id=step.id,
+            executor="ocr",
+            doc=doc,
+        )
 ```
 
-**Важно:** `StepResult` больше не нужен — Executor возвращает `MedicalDoc` напрямую.
+**Примечание:** Executor возвращает `StepResult` с типизированным `doc`. Merge выполняется в orchestrator.
 
 ### 3.4 Обновление промптов
 
@@ -419,174 +423,159 @@ Respond with valid JSON.
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 3.1 | Рефакторинг `OcrExecutor.execute()` на `chat_structured()` | `flows/pec/ocr_executor.py` | ✅ |
-| 3.2 | Обновить `StepResult` модель | `flows/pec/models.py` | ✅ |
-| 3.3 | Обновить system.md | `prompts/ocr_executor/system.md` | ✅ |
-| 3.4 | Обновить user.md | `prompts/ocr_executor/user.md` | ✅ |
-| 3.5 | Добавить `executor_structured_mock` | `llm/mock_scenarios.py` | ✅ |
-| 3.6 | Обновить `build_pec.py` (max_retries) | `flows/pec/build_pec.py` | ⬜ (минорное улучшение) |
-| 3.7 | Написать тесты | `tests/test_executor_structured.py` | ⬜ (опционально) |
+| 3.1 | Рефакторинг `OcrExecutor.execute()` на `chat_structured()` | `flows/pec/ocr_executor.py:94-102` | ✅ DONE |
+| 3.2 | Обновить `StepResult` модель | `flows/pec/models.py:136-153` | ✅ DONE |
+| 3.3 | Обновить system.md | `prompts/ocr_executor/system.md` | ✅ DONE |
+| 3.4 | Обновить user.md | `prompts/ocr_executor/user.md` | ✅ DONE |
+| 3.5 | Инкрементальный merge в orchestrator | `flows/pec/orchestrator.py:98` | ✅ DONE |
+| 3.6 | Обновить `build_pec.py` (max_retries) | `flows/pec/build_pec.py` | ✅ DONE |
+| 3.7 | Тесты | `tests/` | ⬜ (опционально) |
 
 ---
 
 ## Фаза 4: Critic
 
-### 4.1 Текущее состояние
+### 4.1 Что уже сделано / Что осталось
+
+**DONE — `flows/pec/critic.py` переделан:**
 
 ```python
-# flows/pec/critic.py (текущее)
-resp = await self._llm.chat(ChatRequest(...))
-data = load_llm_yaml(resp.text)  # ← ручной парсинг
-return CriticResult.model_validate(data)
+# Новая сигнатура — только RunContext, без StepResult
+async def review(self, context: RunContext) -> CriticResult:
+    ...
+    return await self._llm.chat_structured(
+        ChatRequest(messages=[...]),
+        response_model=CriticResult,
+    )
+# load_llm_yaml, SchemaCatalog — удалены
+```
+
+**DONE — `flows/pec/renderer.py`:**
+- `render_critic_final_template(context, template)` — добавлена
+- `render_critic_template(context, step, result, template)` — удалена
+- Агрегирует `success_criteria` всех шагов, передаёт `context.doc` как JSON
+
+**ОСТАЛОСЬ — `flows/pec/orchestrator.py:104-141` — ВСЕГДА НЕПРАВИЛЬНО:**
+
+```python
+# orchestrator.py (сейчас — НЕПРАВИЛЬНО, надо исправить)
+for step_result in context.steps_results:
+    verdict = await self._critic.review(context, step_result)  # ← старая сигнатура!
+```
+
+**ОСТАЛОСЬ — промпты:**
+```
+# prompts/critic/system.md — всё ещё требует YAML вывод
+# prompts/critic/user.md — всё ещё минимальный, ссылается на {{STEP}}
 ```
 
 ### 4.2 Целевое состояние
 
 ```python
-# flows/pec/critic.py (после рефакторинга)
+# flows/pec/critic.py (после рефакторинга) — УЖЕ РЕАЛИЗОВАНО
 return await self._llm.chat_structured(
     ChatRequest(...),
     response_model=CriticResult,
-    max_retries=self._max_retries,
 )
 ```
 
 ### 4.3 Изменения в Critic
 
-Critic теперь ревьюит **финальное объединённое** извлечение:
+1. Перейти на `chat_structured()` с `CriticResult`
+2. Изменить вызов — **один раз** после всех шагов
+3. Проверять **финальный merged** `context.doc` (не пошагово)
+4. При неудаче — отправлять на retry/replan
 
 ```python
-async def review(
-    self, 
-    context: RunContext,
-) -> CriticResult:
-    """Ревью финального извлечения после всех шагов."""
-    
-    final = context.final_extraction  # ← merged extraction
-    
-    # Critic сравнивает:
-    # 1. final vs context.document_content (исходник)
-    # 2. final.schema_id vs context.active_schema
-    # 3. Все success_criteria из plan.steps
-    
-    return await self._llm.chat_structured(
-        ChatRequest(...),
-        response_model=CriticResult,
-    )
+# orchestrator.py (целевой вариант — ЕЩЁ НЕ РЕАЛИЗОВАН)
+async def critic(self, context: RunContext) -> None:
+    """Проверить финальный merged документ — один вызов после всех шагов."""
+    if context.plan is None:
+        raise ValueError("RunContext.plan is required for review")
+    if not context.steps_results:
+        raise ValueError("No step results to review")
+
+    verdict = await self._critic.review(context)  # только context, без step_result
+    context.critic_feedback = verdict.issues
+    context.status = RunStatus.COMPLETED if verdict.approved else RunStatus.FAILED
+
+    if verdict.approved:
+        log.info("Critic approved: %s", verdict.summary)
+    else:
+        log.error("Critic rejected: %s", verdict.summary)
 ```
 
-**Важно:** Critic вызывается **один раз** после всех шагов Executor'a, а не после каждого.
+### 4.4 CLI интеграция (уже реализовано)
+
+Critic можно вызывать из CLI отдельно для отладки:
+
+```bash
+# Полный pipeline
+advisor ocr-flow document.txt
+
+# Пошагово (для отладки)
+advisor plan "лабораторный анализ" > context.yaml
+advisor exec context.yaml > context.yaml
+advisor critic context.yaml > context.yaml
+```
+
+**CLI команды** (`cli/commands/critic.py`):
+- Вход: `context.yaml` с заполненными `plan` и `steps_results`
+- Выход: обновлённый `context.yaml` с `status` и `critic_feedback`
+
+Это позволяет отлаживать Critic изолированно от остального pipeline.
 
 ### 4.4 Обновление промптов
 
-**`prompts/critic/system.md`:**
-
-```markdown
-Role: Critic
-
-You review extracted medical data against the source document.
-
-## Your Task
-
-1. Compare extracted data with the original document
-2. Verify ALL values are preserved exactly
-3. Check for missing, altered, or invented data
-4. Return structured verdict
-
-## Review Rules
-
-**APPROVE only if:**
-- All dates match the source exactly
-- All numeric values match the source exactly  
-- All measurement units match the source exactly
-- All required information is extracted
-- No data is invented or hallucinated
-
-**REJECT if ANY of these found:**
-- Missing value that exists in source document
-- Altered value (different from source)
-- Invented data not present in source
-- Wrong schema_id for document type
-
-## Issue Severity
-
-| Severity | When to use |
-|----------|-------------|
-| high | Missing/wrong required value, altered numbers, wrong dates |
-| medium | Missing optional field, incomplete extraction |
-| low | Minor formatting issue |
-
-## Output Format
-
-```json
-{
-  "approved": true,
-  "summary": "All values extracted correctly",
-  "issues": []
-}
+**Текущее:** `prompts/critic/system.md` требует YAML-вывод:
+```
+Output rules
+- Return ONLY valid YAML.
+- No JSON.
 ```
 
-Or if issues found:
-
-```json
-{
-  "approved": false,
-  "summary": "Missing hemoglobin reference range",
-  "issues": [
-    {
-      "severity": "medium",
-      "description": "Reference range for Hemoglobin not extracted",
-      "suggestion": "Add reference_range: '120-160' to Hemoglobin measurement"
-    }
-  ]
-}
+**Изменить на:**
 ```
+Output rules
+- Return valid JSON.
+- No YAML.
+- No markdown fences.
 ```
 
-**`prompts/critic/user.md`:**
+**`prompts/critic/user.md`:** изменить `{{STEP_RESULT}}` на `{{FINAL_DOC}}` (финальный merged doc).
 
-```markdown
-Review the extracted data against the source document.
+### 4.5 ЧТО НЕ ДЕЛАТЬ при реализации Critic
 
-## Source Document
+**Методов и переменных которых НЕ СУЩЕСТВУЕТ — не использовать:**
 
-{{DOCUMENT_CONTENT}}
+- `context.final_extraction` — нет такого поля. Правильно: `context.doc`
+- `critic.review_final(context, final_doc)` — нет такого метода. Правильно: `critic.review(context)`
+- `RunStatus.NEEDS_RETRY` — нет такого статуса. Правильно: `RunStatus.FAILED`
+- `render_critic_template(context, step, result, template)` — УДАЛЕНА. Правильно: `render_critic_final_template(context, template)`
+- `load_llm_yaml()` — удалена из critic.py. Не импортировать снова.
 
-## Expected Schema
+**Архитектурные запреты:**
 
-schema_id: {{ACTIVE_SCHEMA}}
+- НЕ вызывать `critic.review()` в цикле по `step_results` — только ОДИН вызов после всех шагов
+- НЕ передавать `StepResult` в `critic.review()` — новая сигнатура принимает только `RunContext`
+- НЕ добавлять `schema_catalog` в `Critic.__init__` — было удалено, не нужно
+- НЕ добавлять `max_retries` в `Critic.__init__` — не планируется в текущей фазе
+- НЕ возвращать к YAML-парсингу в critic — только `chat_structured()`
 
-## Success Criteria
+---
 
-{{SUCCESS_CRITERIA}}
-
-## Extracted Data (to review)
-
-{{STEP_RESULT}}
-
-## Task
-
-1. Compare each extracted value with the source document
-2. Verify schema_id matches document type
-3. Check all success criteria are met
-4. Return approval or list of issues
-
-Respond with JSON.
-```
-
-### 4.5 Задачи Фазы 4 (в процессе / ожидает завершения)
+### 4.6 Задачи Фазы 4 (В ПРОЦЕССЕ)
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 4.1 | Рефакторинг `Critic.review()` на `chat_structured()` | `flows/pec/critic.py` | ⬜ |
-| 4.2 | Убрать импорт `load_llm_yaml` | `flows/pec/critic.py` | ⬜ |
-| 4.3 | Улучшить descriptions в `CriticResult` | `flows/pec/models.py` | ✅ (уже good) |
-| 4.4 | Обновить system.md | `prompts/critic/system.md` | ⬜ |
-| 4.5 | Обновить user.md | `prompts/critic/user.md` | ⬜ |
-| 4.6 | Обновить `critic_structured_mock` | `llm/mock_scenarios.py` | ✅ |
-| 4.7 | Обновить `build_pec.py` (max_retries) | `flows/pec/build_pec.py` | ⬜ |
-| 4.8 | Обновить renderer для JSON extraction | `flows/pec/renderer.py` | ⬜ |
-| 4.9 | Написать тесты | `tests/test_critic_structured.py` | ⬜ |
+| 4.1 | Рефакторинг `Critic.review()` на `chat_structured()` | `flows/pec/critic.py` | ✅ DONE |
+| 4.2 | Убрать `load_llm_yaml`, `SchemaCatalog` из critic.py | `flows/pec/critic.py` | ✅ DONE |
+| 4.3 | Добавить `render_critic_final_template()`, удалить старую | `flows/pec/renderer.py` | ✅ DONE |
+| 4.4 | Исправить `orchestrator.critic()` — один вызов на `context.doc` | `flows/pec/orchestrator.py:104-141` | ⬜ |
+| 4.5 | Обновить system.md — JSON вместо YAML | `prompts/critic/system.md` | ⬜ |
+| 4.6 | Обновить user.md — финальный doc, агрегированные критерии | `prompts/critic/user.md` | ⬜ |
+| 4.7 | Написать тесты | `tests/` | ⬜ (опционально) |
+| 4.8 | CLI интеграция | `cli/commands/critic.py` | ✅ УЖЕ ЕСТЬ |
 
 ---
 
@@ -715,40 +704,30 @@ class MedicalDoc(BaseModel):
 @dataclass
 class RunContext:
     """Shared state passed through the PEC pipeline."""
-    
+
     # === INPUT (immutable) ===
     user_request: str
     document_content: str
-    
+
     # === PLANNING ===
     plan: PlanResult | None = None
     active_schema: str | None = None
-    
-    # === EXECUTION (один накопительный документ) ===
-    doc: MedicalDoc | None = None
-    
+
+    # === EXECUTION ===
+    steps_results: list[StepResult] = field(default_factory=list)  # результаты по шагам
+    doc: MedicalDoc | None = None  # накопленный merged документ
+
     # === REVIEW ===
     critic_feedback: list[CriticIssue] = field(default_factory=list)
-    
+
     # === STATUS ===
     status: RunStatus = RunStatus.PENDING
     retry_count: int = 0
-    
-    # === METADATA ===
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    error: str | None = None
-    
-    def add_doc(self, new_doc: MedicalDoc) -> None:
-        """Инкрементальный merge после каждого шага Executor.
-        
-        Первый вызов: устанавливает базовый документ.
-        Последующие: merge с текущим состоянием.
-        """
-        if self.doc is None:
-            self.doc = new_doc
-        else:
-            self.doc = self.doc.merge(new_doc)
+```
+
+**Примечание:** Merge выполняется в orchestrator.py:98:
+```python
+context.doc = context.doc.merge(result.doc) if context.doc else result.doc
 ```
 
 ### 5.5 Сериализация
@@ -797,15 +776,15 @@ def save_run_context(context: RunContext, path: Path) -> None:
   recommendations: ["Повторный анализ через 6 мес."]  ← из шага 3
 ```
 
-### 5.7 Задачи Фазы 5 (в процессе)
+### 5.7 Задачи Фазы 5 (ЧАСТИЧНО РЕАЛИЗОВАНО)
 
 | # | Задача | Файл | Статус |
 |---|--------|------|--------|
-| 5.1 | Добавить `MedicalDoc.merge()` | `flows/pec/schemas/medical_doc.py` | ✅ (уже в models.py) |
-| 5.2 | Обновить `RunContext` с `doc` и `add_doc()` | `flows/pec/models.py` | ✅ |
-| 5.3 | Тесты на merge | `tests/test_medical_doc_merge.py` | ⬜ |
-| 5.4 | Добавить `save_run_context()` | `flows/pec/models.py` | ⬜ |
-| 5.5 | Обновить `load_run_context()` | `flows/pec/models.py` | ⬜ |
+| 5.1 | `MedicalDoc.merge()` | `flows/pec/models.py:582-655` | ✅ DONE |
+| 5.2 | `RunContext` с `doc` и `steps_results` | `flows/pec/models.py:663-708` | ✅ DONE |
+| 5.3 | Сериализация `run_context_to_yaml()` | `flows/pec/models.py:780-786` | ✅ DONE |
+| 5.4 | Десериализация `load_run_context()` | `flows/pec/models.py:811-812` | ✅ DONE |
+| 5.5 | Тесты на merge | `tests/test_medical_doc_merge.py` | ⬜ (опционально) |
 | 5.6 | Интеграция с БД (опционально) | `db/` | ⬜ |
 | 5.7 | CLI команда для просмотра результатов | `cli/commands/` | ⬜ |
 
@@ -823,8 +802,36 @@ def save_run_context(context: RunContext, path: Path) -> None:
 
 ---
 
-## Диаграмма данных (инкрементальный merge)
+## Диаграмма данных (фактическое поведение vs целевое)
 
+### Как сейчас (НЕПРАВИЛЬНО):
+
+```
+Executor → [step1, step2, step3] → steps_results[]
+                                    ↓
+                              context.doc (merged)
+                                    ↓
+Critic → for step in steps_results:
+          review(step_result)  ← проверяет отдельно!
+```
+
+### Как должно быть (после Фазы 4):
+
+```
+┌──────────────┐
+│   Planner    │ ←──── retry с feedback
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Executor   │ ──▶ steps_results[] ──▶ context.doc (merged)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐    context.doc    ┌──────────────────┐
+│    Critic    │ ──▶ (final) ──▶ │ COMPLETED / FAIL │
+│  (один раз)  │                  │  (retry/replan)  │
+└──────────────┘                  └──────────────────┘
 ```
 ┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐
 │   Planner    │────▶│  PlannerOutputSchema │────▶│    PlanResult    │
@@ -872,26 +879,66 @@ def save_run_context(context: RunContext, path: Path) -> None:
 
 ---
 
-## Критерии готовности
+## CLI интерфейс (пошаговое выполнение)
 
+Каждый компонент PEC pipeline доступен из CLI отдельно для отладки:
+
+```bash
+# 1. Plan — создать план из запроса
+advisor plan "лабораторный анализ крови" > context.yaml
+# Выход: context.yaml с plan, schema_name, steps[]
+
+# 2. Exec — выполнить шаги без critic
+advisor exec context.yaml > context.yaml
+# Вход: context.yaml с plan
+# Выход: context.yaml с steps_results[], doc (merged)
+
+# 3. Critic — проверить результаты
+advisor critic context.yaml > context.yaml
+# Вход: context.yaml с steps_results, doc
+# Выход: context.yaml с status, critic_feedback[]
+
+# 4. OCR Flow — полный pipeline (plan + exec + critic)
+advisor ocr-flow document.txt
+```
+
+**Команды:**
+- `cli/commands/plan.py` — создание плана
+- `cli/commands/exec.py` — выполнение шагов
+- `cli/commands/critic.py` — проверка результатов
+- `cli/commands/ocr_flow.py` — полный pipeline
+
+**Паттерн:** Каждая команда читает `RunContext` из YAML, выполняет свой этап, выводит обновлённый `RunContext` в YAML. Это позволяет:
+- Отлаживать каждый этап изолированно
+- Вмешиваться в процесс между этапами
+- Повторно использовать промежуточные результаты
+
+---
+
+## Критерии готовности
 ### Фаза 2 ✅ DONE:
-- [x] `MedicalDoc` модель создана (в `flows/pec/models.py`)
-- [x] Объект `MedicalDoc` экспортируется из `flows/pec/models.py`
-- [x] Тесты на валидацию схемы проходят
+- [x] `MedicalDoc` модель создана (в `flows/pec/models.py:406`)
+- [x] `MedicalDoc.merge()` реализован (в `flows/pec/models.py:582`)
+- [x] `RunContext` создан с полями `doc`, `steps_results` (в `flows/pec/models.py:663`)
 
 ### Фаза 3 ✅ DONE:
-- [x] Executor использует `chat_structured()`
+- [x] Executor использует `chat_structured()` с `MedicalDoc` (`flows/pec/ocr_executor.py:94`)
+- [x] Инкрементальный merge работает (`flows/pec/orchestrator.py:98`)
 - [x] Промпты обновлены на JSON
-- [x] Mock scenarios работают
 - [ ] Unit тесты проходят (опционально)
 
-### Фаза 4 ⏳ WAITING:
-- [ ] Critic использует `chat_structured()`
-- [ ] Critic валидирует `MedicalDoc`
-- [ ] Промпты обновлены
-- [ ] Unit тесты проходят
+### Фаза 4 ⏳ В ПРОЦЕССЕ:
+- [x] `Critic.review(context)` использует `chat_structured(response_model=CriticResult)` (`flows/pec/critic.py`)
+- [x] `load_llm_yaml` и `SchemaCatalog` удалены из `critic.py`
+- [x] `render_critic_final_template()` добавлена в `renderer.py`, старая удалена
+- [ ] `Orchestrator.critic()` — один вызов `critic.review(context)`, без цикла (`flows/pec/orchestrator.py:104-141`)
+- [ ] `prompts/critic/system.md` — JSON формат, без YAML
+- [ ] `prompts/critic/user.md` — финальный merged doc, агрегированные success_criteria
+- [x] CLI команда `advisor critic` уже есть (`cli/commands/critic.py`)
+- [ ] Unit тесты (опционально)
 
-### Фаза 5 ⏳ WAITING:
-- [ ] RunContext сохраняется/загружается корректно
-- [ ] Интеграционный тест полного pipeline проходит
-- [ ] CLI команды работают
+### Фаза 5 ⏳ PARTIAL:
+- [x] RunContext сохраняется/загружается корректно (`run_context_to_yaml`, `load_run_context`)
+- [x] Интеграция с моделями работает
+- [ ] CLI команда для просмотра результатов
+- [ ] Интеграционный тест полного pipeline

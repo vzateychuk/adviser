@@ -38,7 +38,10 @@ def critic(
             log.error("No step results to review. Run 'exec' first.")
             raise typer.Exit(code=2)
         
-        log.info("Reviewing %d steps", len(runCtx.steps_results))
+        for sr in runCtx.steps_results:
+            step = next((s for s in runCtx.plan.steps if s.id == sr.step_id), None)
+            title = step.title if step else "unknown"
+            log.info("Reviewing step %d: %s", sr.step_id, title)
         asyncio.run(orchestrator.critic(runCtx))
         
         if runCtx.status == RunStatus.FAILED:

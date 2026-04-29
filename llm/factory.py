@@ -34,12 +34,13 @@ class _ConfiguredLLMClientFactory:
                 # Structured output scenarios
                 planner_structured=planner_structured_mock,
                 critic_structured=critic_structured_mock,
-            )
+        )
 
         if cfg.provider == "openai":
             if not cfg.base_url:
                 raise ValueError("app.yaml: llm.base_url is required for provider=openai")
-            return OpenAICompatibleClient(base_url=cfg.base_url, model_alias=model_alias)
+            timeout = getattr(cfg, "timeout", 120.0)
+            return OpenAICompatibleClient(base_url=cfg.base_url, model_alias=model_alias, timeout=timeout)
 
         raise ValueError(f"Unsupported llm.provider: {cfg.provider}")
 

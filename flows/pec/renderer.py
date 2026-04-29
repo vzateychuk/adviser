@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Sequence
 
-from flows.pec.models import CriticIssue, CriticResult, MedicalDoc, PlanStep, RunContext, StepResult
+from flows.pec.models import CriticIssue, CriticResult, MedicalDoc, PlanStep, RunContext
 from tools.prompt import render_template
 
 
@@ -45,28 +45,26 @@ def render_planner_prompt(
     )
 
 
-def render_critic_template(
+
+def render_critic_final_template(
     context: RunContext,
-    step: PlanStep,
-    result: StepResult,
     template: str,
 ) -> str:
-    criteria_text = "\n".join(f"- {c}" for c in step.success_criteria)
-    step_text = (
-        f"title: {step.title}\n"
-        f"type: {step.type}\n"
-        f"input: {step.input}\n"
-        f"expected_output: {step.output}\n"
-    )
-    step_result_json = result.doc.model_dump_json(indent=2) if result.doc else "{}"
+    """Render critic prompt for the final merged document."""
+    all_criteria: list[str] = []
+    if context.plan:
+        for step in context.plan.steps:
+            for criterion in step.success_criteria:
+                all_criteria.append(f"- [{step.title}] {criterion}")
+    criteria_text = "\n".join(all_criteria)
+
+    final_doc_json = context.doc.model_dump_json(indent=2) if context.doc else "{}"
     values = {
         "USER_REQUEST": context.user_request,
         "DOCUMENT_CONTENT": context.document_content,
         "ACTIVE_SCHEMA": context.active_schema or "",
-        "STEP": step_text,
-        "STEP_RESULT": step_result_json,
+        "FINAL_DOC": final_doc_json,
         "SUCCESS_CRITERIA": criteria_text,
-        "CRITIC_FEEDBACK": format_critic_feedback_items(context.critic_feedback),
     }
     return render_template(template, values)
 

@@ -196,6 +196,23 @@ class CriticResult(BaseModel):
         description="List of issues found (empty if approved)",
     )
 
+    @model_validator(mode="after")
+    def validate_requirements(self) -> "CriticResult":
+        """Validate that required fields are present based on approved status."""
+        if self.approved and not self.summary.strip():
+            raise ValueError("summary is required when approved")
+        if not self.approved and not self.issues:
+            raise ValueError("issues are required when not approved")
+        return self
+    summary: str = Field(
+        default="",
+        description="Brief summary of the review",
+    )
+    issues: list[CriticIssue] = Field(
+        default_factory=list,
+        description="List of issues found (empty if approved)",
+    )
+
 
 # =============================================================================
 # MEDICAL DOCUMENT MODELS
@@ -303,6 +320,15 @@ class Measurement(BaseModel):
     - Physical data (blood pressure, pulse, temperature)
     """
 
+    @model_validator(mode="before")
+    @classmethod
+    def remap_type_to_name(cls, data: Any) -> Any:
+        """Remap 'type' field to 'name' if name is missing (LLM sometimes returns type)."""
+        if isinstance(data, dict) and "name" not in data and "type" in data:
+            data = dict(data)
+            data["name"] = data.pop("type")
+        return data
+
     name: str = Field(
         description="Measurement name (e.g., 'Hemoglobin', 'Wall thickness')",
     )
@@ -381,6 +407,15 @@ class Measurement(BaseModel):
 
 class Medication(BaseModel):
     """Medication information."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def remap_type_to_name(cls, data: Any) -> Any:
+        """Remap 'type' field to 'name' if name is missing (LLM sometimes returns type)."""
+        if isinstance(data, dict) and "name" not in data and "type" in data:
+            data = dict(data)
+            data["name"] = data.pop("type")
+        return data
 
     name: str = Field(
         description="Medication name",

@@ -101,6 +101,7 @@
 
 ---
 ## MODULES
+
 | MODULE | PATH | PURPOSE | AI_TASK |
 |-----------------|---------------------|------------------------------|----------------|
 | cli-core | cli/ | Main CLI framework and command registration | CLI_AUTOMATION |
@@ -112,6 +113,9 @@
 | db-infra | db/ | Database connection, runtime, and persistence | INFRA |
 | llm-openai-client | llm/openai_client.py | OpenAI-compatible HTTP client | INFRA |
 | llm-mock | llm/mock.py | Mock LLM client for testing | INFRA |
+| db-infra-core | db/db.py, db/bootstrap.py | Database schema, migrations, and bootstrap utilities | INFRA |
+| prompts-core | prompts/{user,system}.md | LLM prompts for planner, executor, critic, and OCR flow | CONFIG |
+| flows-pec | flows/pec/ | PEC (Planner-Executor-Critic) workflow orchestration | PEC_AUTOMATION |
 | tools | tools/ | Shared utilities (logging, etc.) | DEV_TOOLING |
 | tests | tests/ | Test suites (unit, integration) | TESTS |
 *(List in priority order: core → infra → API → tests → tooling.)
@@ -130,16 +134,20 @@
 
 ---
 ## API_SURFACE
+
 | ROUTE_GROUP | PATH_PREFIX | PURPOSE |
 |-------------|---------------|------------------------|
-| advisor-cli | - | Typer CLI with subcommands (ask, plan, exec, etc.) |
+| advisor-cli | /cli | Typer CLI with subcommands (ask, plan, exec, critic, ocr_flow) |
+| pec-api | /plan, /execute, /critic | RESTful API endpoints for PEC (Planner-Executor-Critic) workflow within CLI |
 *(Write `(skip - not applicable)` if no service API.)*
 
 ---
 ## API_CONSUMED
+
 | SERVICE | BASE_URL_CONFIG_KEY | OPERATIONS | MODULE |
 |---------|---------------------|------------|--------|
 | OpenAI API (via LiteLLM) | `LLM__BASE_URL` `LLM__PROVIDER` | chat, completions | llm-openai-client |
+| PEC workflow engine | - | plan execution, critic review, OCR flow orchestration | flows/pec/ |
 | (Mock LLM for testing) | - | mock chat streams | llm-mock |
 *(Max 10. Prioritize: auth > data stores > messaging > notifications. Write `(skip - not applicable)` if none.)
 
@@ -166,6 +174,7 @@
 
 ---
 ## KEY_FILES
+
 | FILE | PURPOSE | RELATED_MODULES |
 |-----------------------|--------------------------------|----------------------|
 | pyproject.toml | Project metadata, dependencies, scripts | DEV_TOOLING |
@@ -175,6 +184,10 @@
 | db/runtime.py | Database connection and session management | db-infra |
 | llm/openai_client.py | OpenAI-compatible HTTP client | llm-openai-client |
 | llm/mock.py | Mock LLM client for testing | llm-mock |
+| db/db.py | Database schema models and SQLAlchemy core definitions | db-infra-core |
+| db/bootstrap.py | Database schema initialization and pre/post-migration hooks | db-infra-core |
+| prompts/user.md | User-facing prompts for planner, executor, critic | prompts-core |
+| prompts/system.md | System prompts for planner, executor, critic | prompts-core |
 | common/types.py | Shared types and DTOs | common |
 | config/dev/app.yaml | Development environment configuration | configuration |
 | config/prod/app.yaml | Production environment configuration | configuration |

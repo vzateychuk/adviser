@@ -72,13 +72,14 @@ class LLMConfig(BaseModel):
     LLM runtime configuration for the current environment.
 
     provider:
-      - openai: OpenAI-compatible API (e.g. LiteLLM proxy)
-      - anthropic: Claude SDK/API (future)
-      - mock: deterministic fake client for tests
+    - openai: OpenAI-compatible API (e.g. LiteLLM proxy)
+    - anthropic: Claude SDK/API (future)
+    - mock: deterministic fake client for tests
     """
 
     provider: LLMProvider
     base_url: str | None = None
+    timeout: float = 180.0
 
 
 class DBConfig(BaseModel):

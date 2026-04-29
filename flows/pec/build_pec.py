@@ -50,7 +50,6 @@ def build_pec(
         llm=llm_factory.for_model(critic_model),
         system_prompt=critic_system_prompt,
         user_template=critic_user_template,
-        schema_catalog=schema_catalog,
     )
 
     return Orchestrator(

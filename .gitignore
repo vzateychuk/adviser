@@ -11,7 +11,9 @@
 # App
 *.env
 .data/
-docs/
+docs/medocs/
+docs/fixtures/
+
 validate.py
 
 # Python

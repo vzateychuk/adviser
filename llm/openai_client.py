@@ -36,9 +36,9 @@ class OpenAICompatibleClient(LLMClient):
       so callers outside llm/ never import openai directly.
     """
 
-    def __init__(self, base_url: str, model_alias: str) -> None:
+    def __init__(self, base_url: str, model_alias: str, timeout: float = 120.0) -> None:
         # openai SDK requires an api_key value, even if the proxy handles auth.
-        self._raw_client = AsyncOpenAI(base_url=base_url, api_key="dummy")
+        self._raw_client = AsyncOpenAI(base_url=base_url, api_key="dummy", timeout=timeout)
         self._model_alias = model_alias
 
         # Instructor-patched client for structured outputs

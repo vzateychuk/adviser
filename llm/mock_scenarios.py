@@ -59,32 +59,10 @@ def ocr_executor_mock(req: ChatRequest) -> ChatResponse:
     user = _last_user(req).lower()
     if "active_schema: lab" in user:
         return ChatResponse(
-            text=(
-                "document:\n"
-                "  date: '2024-01-01'\n"
-                "  org: Mock Lab\n"
-                "  source_ref: mock_document\n"
-                "patient:\n"
-                "  full_name: Mock Patient\n"
-                "  surname: Patient\n"
-                "  birth_date: null\n"
-                "laboratory_panel:\n"
-                "  results:\n"
-                "    - analyte: Hemoglobin\n"
-                "      value: '120'\n"
-                "      unit: g/L\n"
-                "      reference_range: 120-160\n"
-            )
+            text='{"schema_id": "lab", "document": {"date": "2024-01-01"}, "patient": {"full_name": "Mock Patient"}, "measurements": [{"name": "Hemoglobin", "value": "120", "unit": "g/L", "reference_range": "120-160", "status": "normal"}]}'
         )
     return ChatResponse(
-        text=(
-            "document:\n"
-            "  date: '2024-01-01'\n"
-            "patient:\n"
-            "  full_name: Mock Patient\n"
-            "consultation:\n"
-            "  summary: Follow-up visit\n"
-        )
+        text='{"schema_id": "consultation", "document": {"date": "2024-01-01"}, "patient": {"full_name": "Mock Patient"}, "findings": ["Follow-up visit"]}'
     )
 
 

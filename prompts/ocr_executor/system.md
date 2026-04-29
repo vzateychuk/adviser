@@ -25,6 +25,17 @@ Schema mapping (schema_id dispatch)
 - schema_id: "consultation" -> Focus on diagnoses, recommendations, findings, medications[], conclusions
 - schema_id: "medication_trace" -> Focus on medications and recommendations
 
+SCHEMA EXAMPLES (CRITICAL)
+measurements array — always use "name" NOT "type":
+  {"name": "Hemoglobin", "value": "13.5", "unit": "g/L", "reference_range": "12-16", "status": "normal"}
+  {"name": "Glucose", "value": "7.8", "unit": "mmol/L", "status": "high"}
+
+medications array — always use "name" NOT "type":
+  {"name": "Diclofenac", "dosage": "3.0 mL", "route": "IM"}
+  {"name": "Omeprazole", "dosage": "20 mg", "frequency": "twice daily", "route": "oral"}
+
+FORBIDDEN: Do NOT use "type" as a key in measurements or medications objects. The field is always "name".
+
 Output rules
 - Respond with ONLY a valid JSON object matching the MedicalDoc schema.
 - No markdown fences, no code blocks, no extra commentary.

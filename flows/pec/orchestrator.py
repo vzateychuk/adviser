@@ -79,63 +79,53 @@ class Orchestrator:
             RunStatus.SKIPPED if plan.action == PlanAction.SKIP else RunStatus.PLANNED
         )
 
-    async def execute(self, context: RunContext) -> None:
+    async def execute(self, runCtx: RunContext) -> None:
         """Execute all planned steps WITHOUT critic, with retry logic delegated to transport layer."""
-        if context.plan is None:
+        if runCtx.plan is None:
             raise ValueError("RunContext.plan is required for execution")
         
-        if context.plan.action == PlanAction.SKIP:
-            context.status = RunStatus.SKIPPED
+        if runCtx.plan.action == PlanAction.SKIP:
+            runCtx.status = RunStatus.SKIPPED
             return
         
-        for step in context.plan.steps:
+        for step in runCtx.plan.steps:
             step_id = step.id
             log.info("Executing step %d: %s", step_id, step.title)
-            result = await self._executor.execute(context, step_id)
-            context.steps_results.append(result)
+            result = await self._executor.execute(runCtx, step_id)
+            runCtx.steps_results.append(result)
             
             # Merge incrementally; result.doc is always non-None per Pydantic validation
-            context.doc = context.doc.merge(result.doc) if context.doc else result.doc
+            runCtx.doc = runCtx.doc.merge(result.doc) if runCtx.doc else result.doc
         
-        context.status = RunStatus.COMPLETED
-        log.info("Executed %d steps", len(context.steps_results))
+        runCtx.status = RunStatus.COMPLETED
+        log.info("Executed %d steps", len(runCtx.steps_results))
 
+    async def critic(self, runCtx: RunContext) -> None:
+        """Review the final merged document - one call after all steps.
 
-    async def critic(self, context: RunContext) -> None:
-        """Review all executed steps sequentially, stopping on first failure.
-        
         This method mutates the context in place, updating:
-        - context.critic_feedback (list of issues if rejected)
-        - context.status (FAILED if rejected, COMPLETED if all approved)
-        
+        - runCtx.critic_feedback (list of issues if rejected)
+        - runCtx.status (FAILED if rejected, COMPLETED if approved)
+
         Args:
-            context: Shared run context with steps_results populated
-            
+            runCtx: Shared run context with doc (merged) populated
+
         Raises:
-            ValueError: If no steps_results are present
+            ValueError: If no plan or doc is present
         """
-        if context.plan is None:
+        if runCtx.plan is None:
             raise ValueError("RunContext.plan is required for review")
-        
-        if not context.steps_results:
-            raise ValueError("No step results to review")
-        
-        for step_result in context.steps_results:
-            log.debug("Reviewing step %d", step_result.step_id)
-            verdict = await self._critic.review(context, step_result)
-            
-            if not verdict.approved:
-                context.critic_feedback = verdict.issues
-                context.status = RunStatus.FAILED
-                log.error(
-                    "Step %d rejected: %s",
-                    step_result.step_id,
-                    verdict.summary,
-                )
-                return
-            
-            log.debug("Step %d approved", step_result.step_id)
-        
-        context.critic_feedback = []
-        context.status = RunStatus.COMPLETED
-        log.info("All %d steps approved", len(context.steps_results))
+
+        if runCtx.doc is None:
+            raise ValueError("RunContext.doc is required for review")
+
+        verdict = await self._critic.review(runCtx)
+
+        runCtx.critic_feedback = verdict.issues
+        runCtx.status = RunStatus.COMPLETED if verdict.approved else RunStatus.FAILED
+
+        if verdict.approved:
+            log.info("Critic approved")
+        else:
+            for issue in verdict.issues:
+                log.error("  [%s] %s — %s", issue.severity, issue.description, issue.suggestion)
