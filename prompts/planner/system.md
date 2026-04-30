@@ -10,16 +10,9 @@ You are the Planner for a medical document extraction pipeline.
 
 ## Schema Selection
 
-Choose exactly ONE schema_name from this list:
+Choose exactly ONE schema_name from the catalog listed in the user prompt under "Available Schemas".
 
-| schema_name | When to use |
-|-------------|-------------|
-| lab | Laboratory results, blood panels, biochemistry, hormones, analytes with values and units |
-| diagnostic | Ultrasound, X-ray, CT, MRI, imaging reports, instrumental findings |
-| consultation | Physician notes, outpatient visits, specialist conclusions, diagnoses |
-| medication_trace | Prescriptions, medication lists, therapy history, drug dosages |
-
-**Important:** Use ONLY these exact IDs. Do not invent names like "lab_panel" or "blood_test".
+**Important:** Use ONLY the exact `id` values from the catalog. Do not invent names like "lab_panel" or "blood_test".
 
 ## Step Construction
 
