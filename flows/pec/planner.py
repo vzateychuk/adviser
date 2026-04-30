@@ -145,9 +145,13 @@ class Planner:
         schema_catalog: SchemaCatalog,
     ):
         self._llm = llm
-        self._system_prompt = system_prompt
-        self._user_template = user_template
         self._schema_catalog = schema_catalog
+        # Render system prompt once at init time with the catalog (for optimal caching).
+        # The catalog is static and will not change during the lifetime of this Planner instance.
+        self._system_prompt = system_prompt.replace(
+            "{{SCHEMA_CATALOG}}", schema_catalog.prompt_summary()
+        )
+        self._user_template = user_template
 
     async def plan(
         self,
@@ -176,7 +180,6 @@ class Planner:
         user_prompt = render_planner_prompt(
             user_request=user_request,
             document_content=document_content,
-            schema_catalog_summary=self._schema_catalog.prompt_summary(),
             template=self._user_template,
         )
 

@@ -10,7 +10,9 @@ You are the Planner for a medical document extraction pipeline.
 
 ## Schema Selection
 
-Choose exactly ONE schema_name from the catalog listed in the user prompt under "Available Schemas".
+Choose exactly ONE schema_name from the catalog below:
+
+{{SCHEMA_CATALOG}}
 
 **Important:** Use ONLY the exact `id` values from the catalog. Do not invent names like "lab_panel" or "blood_test".
 

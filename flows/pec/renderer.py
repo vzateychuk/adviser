@@ -32,7 +32,6 @@ def render_planner_prompt(
     *,
     user_request: str,
     document_content: str,
-    schema_catalog_summary: str,
     template: str,
 ) -> str:
     return render_template(
@@ -40,7 +39,6 @@ def render_planner_prompt(
         {
             "USER_REQUEST": user_request,
             "DOCUMENT_CONTENT": document_content,
-            "SCHEMA_CATALOG": schema_catalog_summary,
         },
     )
 
