@@ -48,6 +48,25 @@ Each step must have:
 - `output`: Must equal schema_name exactly
 - `success_criteria`: Non-empty list of verification rules for the Critic
 
+**success_criteria generation rules:**
+1. Scan the document content for each step's target fields
+2. For each field FOUND in the document, write one criterion: `"[FieldName] '[observed_value]' preserved in extracted result"`
+3. For each field that is ABSENT in the document: `"Field [FieldName] must be null in extracted result — absent in source document"`
+4. For lists (analytes, diagnoses, etc.): ALWAYS include exact count — write: `"[N] [items] present in source — all [N] must appear in extracted result"`
+5. Do NOT write value-specific criteria for data not visible in the document (absence-criteria per Rule 3 and count-criteria per Rule 4 are allowed)
+6. Do NOT use generic rules like "Preserve all dates" — always identify the specific value
+
+**Value preservation guidance:**
+- Focus on preserving medical meaning rather than exact formatting
+- Numeric values must be preserved exactly (142.5 vs 142,5 is acceptable if consistent)
+- Units must be preserved (мг vs mg should match source document)
+- Significant digits should be preserved as written
+
+**Implementation guidance:**
+- Always include count for list-type data to enable Critic verification
+- Only add structural rules that are relevant to the current schema_name
+- Absence criteria should specify that fields must be null in extracted result
+
 ## SKIP Rules
 
 When action is "SKIP":
@@ -73,8 +92,8 @@ Example for PLAN:
       "input": "document_content",
       "output": "lab",
       "success_criteria": [
-        "Patient surname 'Иванов' extracted exactly",
-        "Date of birth '15.04.1978' extracted exactly"
+        "Patient surname 'Иванов' preserved in extracted result",
+        "Date of birth '15.04.1978' preserved in extracted result"
       ]
     },
     {
@@ -84,8 +103,8 @@ Example for PLAN:
       "input": "document_content",
       "output": "lab",
       "success_criteria": [
-        "Institution name 'ГБУЗ ГКБ №52' extracted exactly",
-        "Field address not present in document"
+        "Institution name 'ГБУЗ ГКБ №52' preserved in extracted result",
+        "Field address must be null in extracted result — absent in source document"
       ]
     },
     {
@@ -95,8 +114,9 @@ Example for PLAN:
       "input": "document_content",
       "output": "lab",
       "success_criteria": [
-        "Hemoglobin value '142 г/л' extracted exactly including units",
-        "Analysis date '12.03.2024' extracted exactly as written",
+        "Hemoglobin value '142 г/л' preserved in extracted result",
+        "Analysis date '12.03.2024' preserved in extracted result",
+        "24 analytes present in source — all 24 must appear in extracted result",
         "No analyte invented or dropped"
       ]
     }
