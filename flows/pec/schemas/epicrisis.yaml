@@ -1,0 +1,15 @@
+schema_meta:
+  id: epicrisis
+  category: epicrisis
+  title: Hospital Discharge Summary Schema
+  comment: Выписка из стационара (Эпикриз) - Объемные документы, суммирующие период госпитализации. Содержат данные о поступившем пациенте, проведенном лечении, динамике состояния и итоговых рекомендациях.
+  intended_use:
+    - hospital_discharge
+    - clinical_summary
+    - inpatient_record
+selection_hints:
+  aliases:
+    - выписка из стационара
+    - выписной эпикриз
+    - посмертный эпикриз
+    - переводной эпикриз

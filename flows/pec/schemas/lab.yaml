@@ -1,13 +1,16 @@
 schema_meta:
   id: lab
   category: lab
-  title: Universal Lab Schema
+  title: Universal Laboratory Schema
+  comment: Лабораторные исследования - Результаты анализов биоматериалов (кровь, моча и др.). Содержат количественные или качественные показатели и референтные значения.
   intended_use:
-    - biochemistry
-    - hormones
-    - blood_panel
+    - blood_test
+    - urine_analysis
+    - biopsy
+    - microbiology
 selection_hints:
   aliases:
     - анализы
     - лаборатория
-    - blood test
+    - ОАК
+    - биохимия

@@ -2,11 +2,19 @@ schema_meta:
   id: consultation
   category: consultation
   title: Universal Consultation Schema
+  comment: Консультации - Заключения врачей-специалистов по итогам осмотра. Включают жалобы, анамнез, установленный диагноз и план лечения.
   intended_use:
+    - specialist_exam
+    - general_practitioner_visit
+    - discharge_summary
     - physician_consultation
     - outpatient_note
 selection_hints:
   aliases:
+    - заключение
+    - осмотр
+    - выписка
+    - эпикриз
     - консультация
     - physician
     - note

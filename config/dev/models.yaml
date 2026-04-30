@@ -2,17 +2,20 @@ version: "1.0"
 
 models:
   planner:
-    primary: "qwen2.5-coder:1.5b"
-    fallback: "qwen2.5:0.5b"
+    # Быстрая логическая модель для классификации
+    primary: "qwen3.5:cloud" 
+    fallback: "glm-5:cloud"
 
   ocr_executor:
-    primary: "qwen2.5-coder:1.5b"
-    fallback: "qwen2.5:0.5b"
+    # Специализированная модель для работы с текстом и кодом
+    primary: "kimi-k2.5:cloud" 
+    fallback: "qwen3.5:cloud"
 
   critic:
-    primary: "qwen2.5:0.5b"
-    fallback: "qwen2.5-coder:1.5b"
+    # Компактная, но строгая модель для проверки
+    primary: "llama3.3:cloud"
+    fallback: "phi-4:cloud"
 
   default:
-    primary: "smollm2:360m"
-    fallback: "llama3.2:1b"
+    primary: "qwen3.5:cloud"
+    fallback: "llama3.2:1b" # Локальный fallback на случай сбоя сети

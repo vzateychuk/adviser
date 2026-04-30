@@ -20,6 +20,9 @@ Each YAML file contains:
 | `diagnostic` | Ultrasound, X-ray, CT, MRI, imaging reports |
 | `consultation` | Physician notes, specialist conclusions, outpatient visits |
 | `medication_trace` | Prescriptions, medication lists, therapy history |
+| `certificate` | Medical certificates, disability certificates |
+| `epicrisis` | Discharge summaries, patient outcome summaries |
+| `operation_protocol` | Surgical reports, operation protocols |
 
 ## Adding a new schema
 

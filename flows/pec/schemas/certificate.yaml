@@ -1,0 +1,15 @@
+schema_meta:
+  id: certificate
+  category: certificate
+  title: Medical Certificate and Record Schema
+  comment: Справки и свидетельства - Документы для предоставления по месту требования. Подтверждают состояние здоровья, отсутствие противопоказаний или факт временной нетрудоспособности.
+  intended_use:
+    - sick_leave
+    - fitness_certificate
+    - medical_clearance
+selection_hints:
+  aliases:
+    - справка
+    - больничный лист
+    - листок нетрудоспособности
+    - медицинское заключение

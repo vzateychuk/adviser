@@ -2,10 +2,17 @@ schema_meta:
   id: medication_trace
   category: medication_trace
   title: Universal Medication Trace Schema
+  comment: Рекомендация препаратов - Записи о назначенных, выданных или принятых лекарственных препаратах, дозировках и схемах приема.
   intended_use:
     - prescriptions
     - medication_history
+    - medication_log
+    - drug_history
 selection_hints:
   aliases:
     - prescription
     - medication
+    - рецепт
+    - назначения
+    - лекарства
+    - терапия

@@ -1,0 +1,15 @@
+schema_meta:
+  id: operation_protocol
+  category: operation_protocol
+  title: Surgical Operation Protocol Schema
+  comment: Протоколы операций - Детальное описание хирургических вмешательств. Включают время начала и конца, состав операционной бригады, описание доступа, хода операции и интраоперационных находок.
+  intended_use:
+    - surgery_report
+    - operative_note
+    - anesthesia_record
+selection_hints:
+  aliases:
+    - протокол операции
+    - ход операции
+    - хирургическое вмешательство
+    - операция

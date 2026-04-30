@@ -2,6 +2,7 @@ schema_meta:
   id: diagnostic
   category: diagnostic
   title: Universal Diagnostic Schema
+  comment: Диагностические исследования - Результаты инструментальных обследований визуализации или функциональной диагностики (МРТ, УЗИ, ЭКГ, Рентген). Описывают состояние органов и тканей.
   intended_use:
     - ultrasound
     - xray
