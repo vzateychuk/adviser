@@ -455,12 +455,12 @@ class MedicalDoc(BaseModel):
     @classmethod
     def ensure_schema_id(cls, data: Any) -> Any:
         """
-        Ensure schema_id is present. If missing, set default to 'lab' and log warning.
+        Ensure schema_id is present. If missing, set default to 'unknown' and log warning.
         """
         if isinstance(data, dict):
             if "schema_id" not in data or not data.get("schema_id"):
-                log.warning("schema_id is missing or empty in MedicalDoc input; defaulting to 'lab'. Input keys: %s", list(data.keys()))
-                data["schema_id"] = "lab"
+                log.warning("schema_id is missing or empty in MedicalDoc input; defaulting to 'unknown'. Input keys: %s", list(data.keys()))
+                data["schema_id"] = "unknown"
         return data
 
     @field_validator("schema_id", mode="before")
@@ -469,17 +469,17 @@ class MedicalDoc(BaseModel):
         """Validate schema_id against the catalog. Alias resolution is the catalog's responsibility."""
         from flows.pec.schema_catalog import default_catalog
         if v is None:
-            log.warning("schema_id is None; defaulting to 'lab'")
-            return "lab"
+            log.warning("schema_id is None; defaulting to 'unknown'")
+            return "unknown"
         if not isinstance(v, str):
             v = str(v)
         normalized = v.strip().lower()
         if not normalized:
-            log.warning("schema_id is empty after normalization; defaulting to 'lab'")
-            return "lab"
+            log.warning("schema_id is empty after normalization; defaulting to 'unknown'")
+            return "unknown"
         if not default_catalog().has(normalized):
-            log.warning("schema_id '%s' is not a known catalog id; defaulting to 'lab'", normalized)
-            return "lab"
+            log.warning("schema_id '%s' is not a known catalog id; defaulting to 'unknown'", normalized)
+            return "unknown"
         return normalized
 
     # === COMMON SECTIONS ===
