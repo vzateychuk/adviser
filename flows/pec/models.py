@@ -441,18 +441,14 @@ class Medication(BaseModel):
 class MedicalDoc(BaseModel):
     """Universal medical document schema.
 
-    Unified structure for all document types:
-    - lab: laboratory tests
-    - diagnostic: Ultrasound, X-ray, CT, MRI
-    - consultation: doctor consultations
-    - medication_trace: prescriptions, medications
-
-    LLM fills relevant fields, others remain empty.
+    Stores the result of one PEC extraction step. The schema_id comes from the
+    catalog and is resolved by the Planner before this model is constructed.
+    LLM fills relevant fields; others remain empty.
     """
 
     # === IDENTIFICATION ===
-    schema_id: Literal["lab", "diagnostic", "consultation", "medication_trace"] = Field(
-        description="Document type determined by Planner",
+    schema_id: str = Field(
+        description="Document type determined by Planner. Must be a canonical schema id from the catalog.",
     )
 
     @model_validator(mode="before")
@@ -470,41 +466,21 @@ class MedicalDoc(BaseModel):
     @field_validator("schema_id", mode="before")
     @classmethod
     def normalize_schema_id(cls, v: Any) -> str:
-        """Normalize schema_id to one of allowed values. Default to 'lab' if unknown."""
+        """Validate schema_id against the catalog. Alias resolution is the catalog's responsibility."""
+        from flows.pec.schema_catalog import default_catalog
         if v is None:
             log.warning("schema_id is None; defaulting to 'lab'")
             return "lab"
         if not isinstance(v, str):
             v = str(v)
         normalized = v.strip().lower()
-        SCHEMA_MAP = {
-            "lab": "lab",
-            "лабораторн": "lab",
-            "анализ": "lab",
-            "laboratory": "lab",
-            "lab test": "lab",
-            "diagnostic": "diagnostic",
-            "ультразвук": "diagnostic",
-            "рентген": "diagnostic",
-            "кт": "diagnostic",
-            "мрт": "diagnostic",
-            "диагност": "diagnostic",
-            "diagnosis": "diagnostic",
-            "consultation": "consultation",
-            "терапевт": "consultation",
-            "врач": "consultation",
-            "консульт": "consultation",
-            "consult": "consultation",
-            "medication_trace": "medication_trace",
-            "рецепт": "medication_trace",
-            "медикамент": "medication_trace",
-            "medication": "medication_trace",
-            "prescription": "medication_trace",
-        }
-        mapped = SCHEMA_MAP.get(normalized, "lab")
-        if mapped == "lab" and normalized not in {"lab", "лабораторн", "анализ", "laboratory", "lab test"}:
-            log.warning("schema_id '%s' not recognized; defaulting to 'lab'", normalized)
-        return mapped
+        if not normalized:
+            log.warning("schema_id is empty after normalization; defaulting to 'lab'")
+            return "lab"
+        if not default_catalog().has(normalized):
+            log.warning("schema_id '%s' is not a known catalog id; defaulting to 'lab'", normalized)
+            return "lab"
+        return normalized
 
     # === COMMON SECTIONS ===
     document: DocumentInfo = Field(

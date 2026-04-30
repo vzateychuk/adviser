@@ -72,7 +72,7 @@ class PlannerOutputSchema(BaseModel):
     schema_name: str | None = Field(
         default=None,
         description=(
-            "Exactly one of: 'lab', 'diagnostic', 'consultation', 'medication_trace'. "
+            "Schema id selected from the catalog listed in the system prompt. "
             "Required when action=PLAN. Must be null when action=SKIP."
         ),
     )

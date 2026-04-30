@@ -93,17 +93,6 @@ class SchemaCatalog:
             if normalized in {self._normalize(alias) for alias in schema.aliases}:
                 return schema_id
 
-        heuristics = {
-            "lab": {"lab", "laboratory", "lab_panel", "blood_test", "blood_panel", "analysis", "analyzes"},
-            "diagnostic": {"diagnostic", "imaging", "xray", "x_ray", "ultrasound", "mri", "ct", "scan"},
-            "consultation": {"consultation", "consult", "visit", "outpatient_note", "note"},
-            "medication_trace": {"medication_trace", "medication", "prescription", "rx", "drug", "therapy"},
-        }
-        for schema_id, tokens in heuristics.items():
-            if normalized in tokens:
-                return schema_id
-            if any(token in normalized for token in tokens):
-                return schema_id
         return None
 
     def get(self, schema_id: str) -> SchemaDefinition:
@@ -130,3 +119,17 @@ class SchemaCatalog:
                 f"  aliases: {aliases}\n"
             )
         return "\n".join(parts).strip()
+
+
+# Module-level lazy singleton — loaded once from the schemas/ directory next to this file.
+# Used by MedicalDoc.normalize_schema_id for catalog-based validation without
+# requiring callers to pass a catalog instance.
+_default_instance: SchemaCatalog | None = None
+
+
+def default_catalog() -> SchemaCatalog:
+    """Return the default SchemaCatalog loaded from the schemas/ directory next to this file."""
+    global _default_instance
+    if _default_instance is None:
+        _default_instance = SchemaCatalog(Path(__file__).parent / "schemas")
+    return _default_instance
