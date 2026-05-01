@@ -658,6 +658,7 @@ class MedicalDoc(BaseModel):
             procedure_name=other.procedure_name if other.procedure_name is not None else self.procedure_name,
             conclusion=other.conclusion if other.conclusion is not None else self.conclusion,
             notes=merged_notes,
+            tags=_dedup_strings(self.tags + other.tags),
             findings=_dedup_strings(self.findings + other.findings),
             diagnoses=_dedup_strings(self.diagnoses + other.diagnoses),
             recommendations=_dedup_strings(self.recommendations + other.recommendations),

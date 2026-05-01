@@ -4,18 +4,18 @@ models:
   planner:
     # Быстрая логическая модель для классификации
     primary: "qwen3.5:cloud" 
-    fallback: "glm-5:cloud"
+    fallback: "ministral-3:8b-cloud"
 
   ocr_executor:
     # Специализированная модель для работы с текстом и кодом
-    primary: "kimi-k2.5:cloud" 
-    fallback: "qwen3.5:cloud"
+    primary: "ministral-3:8b-cloud"
+    fallback: "ministral-3:8b-cloud"
 
   critic:
     # Компактная, но строгая модель для проверки
-    primary: "llama3.3:cloud"
-    fallback: "phi-4:cloud"
+    primary: "gpt-oss:20b-cloud"
+    fallback: "qwen3.5:cloud"
 
   default:
-    primary: "qwen3.5:cloud"
-    fallback: "llama3.2:1b" # Локальный fallback на случай сбоя сети
+    primary: "ministral-3:8b-cloud"
+    fallback: "qwen3.5:cloud" # Локальный fallback на случай сбоя сети

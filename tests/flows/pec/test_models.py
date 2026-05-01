@@ -114,3 +114,45 @@ def test_run_context_yaml_roundtrip_preserves_strings():
 
     assert restored.active_schema == "lab"
     assert restored.critic_feedback[0].description == "Missing range"
+
+def test_medical_doc_merge_preserves_tags():
+    """Test that merge() correctly combines tags from multiple steps."""
+    doc1 = MedicalDoc(
+        schema_id="lab",
+        tags=["blood_test", "biochemistry"],
+        findings=["Finding 1"],
+    )
+    doc2 = MedicalDoc(
+        schema_id="lab",
+        tags=["emergency", "blood_test"],  # duplicate with doc1
+        findings=["Finding 2"],
+    )
+    merged = doc1.merge(doc2)
+
+    assert merged.tags == ["blood_test", "biochemistry", "emergency"]
+    assert merged.findings == ["Finding 1", "Finding 2"]
+
+
+def test_medical_doc_merge_preserves_all_fields():
+    """Test that merge() correctly combines all list fields."""
+    doc1 = MedicalDoc(
+        schema_id="lab",
+        tags=["tag1"],
+        findings=["finding1"],
+        diagnoses=["diagnosis1"],
+        recommendations=["rec1"],
+    )
+    doc2 = MedicalDoc(
+        schema_id="lab",
+        tags=["tag2"],
+        findings=["finding2"],
+        diagnoses=["diagnosis2"],
+        recommendations=["rec2"],
+    )
+    merged = doc1.merge(doc2)
+
+    assert merged.tags == ["tag1", "tag2"]
+    assert merged.findings == ["finding1", "finding2"]
+    assert merged.diagnoses == ["diagnosis1", "diagnosis2"]
+    assert merged.recommendations == ["rec1", "rec2"]
+
