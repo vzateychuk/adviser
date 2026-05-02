@@ -19,8 +19,8 @@ Review rules
 *Absence criteria (e.g., "Field address must be null in extracted result — absent in source document"):*
 - Identify the field name from the criterion (e.g., "address")
 - Navigate to that field in final_doc
-- Verify the field is null/None/absent
-- If field has any value → REJECT
+- A field is considered absent if it is: null, None, an empty array [], or an empty object {}
+- If field contains actual content (non-empty string, non-empty array, non-empty object) → REJECT
 
 *Structural rules (e.g., "No analyte invented or dropped", "All diagnoses listed"):*
 - Compare each item in final_doc against document_content

@@ -1,8 +1,0 @@
-{
-  "id": 2,
-  "title": "Implement summarize_previous_results helper",
-  "type": "code",
-  "input": "Implement summarize_previous_results(previous_results, max_lines=20) that returns a string with per-result header and first N lines. Use type hints.",
-  "output": "Python code (ready to paste)",
-  "success_criteria": ["Valid Python", "Uses splitlines()", "Limits to max_lines", "Includes step_id and executor in output"]
-}
