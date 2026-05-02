@@ -49,7 +49,11 @@ Each step must have:
 3. For each field that is ABSENT in the document: `"Field [FieldName] must be null in extracted result — absent in source document"`
 4. For lists (analytes, diagnoses, etc.): ALWAYS include exact count — write: `"[N] [items] present in source — all [N] must appear in extracted result"`
 5. Do NOT write value-specific criteria for data not visible in the document (absence-criteria per Rule 3 and count-criteria per Rule 4 are allowed)
-6. Do NOT use generic rules like "Preserve all dates" — always identify the specific value
+6. Do NOT use generic rules like "Preserve all dates" — always identify the specific value 
+7. For fields with automatic normalization (gender, measurement status), write: "[FieldName] correctly extracted as '[expected_normalized_value]'"
+   The expected_normalized_value is the English enum value that corresponds to what is written in the source document (e.g., if source says a male gender word → 'male').
+   Do NOT write "preserved as '[raw_source_value]'" for these fields — normalization to the English enum is correct behavior, not a violation.
+8. Do NOT generate absence criteria for these MedicalDoc output fields: tags, notes, metadata. These fields always have default values in the output schema ([] and {}) and will never be null even when empty. For tags: if the source document has a 'tags' field, extract and use those keywords. Otherwise, populate it with relevant medical keywords from the document content (diagnoses, procedures, etc.). Write the criterion: `"tags populated with relevant medical keywords from the document"`
 
 **Value preservation guidance:**
 - Focus on preserving medical meaning rather than exact formatting
