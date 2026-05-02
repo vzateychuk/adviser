@@ -21,24 +21,19 @@ Choose exactly ONE schema_name from the catalog below:
 
 ## Step Construction
 
-When action is "PLAN", generate extraction steps using the **Mandatory Step Structure** below.
+When action is "PLAN", generate the minimum number of steps required.
 
-Steps are generated only for data that is actually present in the document. 
-When multiple categories are present, they MUST appear:
+**Step Generation Rule:**
+- Generate ONE step when all needed data resides in a single document section.
+- Generate 2–3 steps ONLY when the document has genuinely distinct sections
+  (e.g., a multi-page lab report where demographics and analyte table are on separate pages).
+- NEVER generate multiple steps that read from the same document section.
+  Steps with identical input scope and identical output type MUST be merged into one.
 
-**Patient demographics step (include only if patient section is present)**
-- Extract: full name, date of birth, gender, patient ID, etc
-- Skip entirely if the document contains no patient section
+**Strict Prohibition:**
 
-**Medical organization step (include only if organization section is present)**
-- Extract: institution name, address, phone/website, department, registration or license number
-- Skip entirely if the document contains no organization section
-
-**Document-specific data steps (one or more, based on content)**
-- One step per logical data group (e.g., one analyte group, one diagnosis block)
-- Step title MUST name the specific data group:
-  - Good: "Extract complete blood count analytes", "Extract primary diagnosis and ICD code"
-  - Bad: "Extract lab data", "Extract information", "Extract document fields"
+NEVER generate multiple steps that have the same `input` and `output` values.
+This is a critical architectural rule to prevent data duplication and merge artifacts.
 
 Each step must have:
 - `id`: Step number (starting from 1)
@@ -82,38 +77,20 @@ Example for PLAN:
 ```json
 {
   "action": "PLAN",
-  "goal": "Extract complete blood count results from laboratory report",
+  "goal": "Extract all medical entities from the laboratory report",
   "schema_name": "lab",
   "steps": [
     {
       "id": 1,
-      "title": "Extract patient demographics",
+      "title": "Extract all entities from laboratory report",
       "type": "ocr",
       "input": "document_content",
       "output": "lab",
       "success_criteria": [
         "Patient surname 'Иванов' preserved in extracted result",
-        "Date of birth '15.04.1978' preserved in extracted result"
-      ]
-    },
-    {
-      "id": 2,
-      "title": "Extract medical organization",
-      "type": "ocr",
-      "input": "document_content",
-      "output": "lab",
-      "success_criteria": [
+        "Date of birth '15.04.1978' preserved in extracted result",
         "Institution name 'ГБУЗ ГКБ №52' preserved in extracted result",
-        "Field address must be null in extracted result — absent in source document"
-      ]
-    },
-    {
-      "id": 3,
-      "title": "Extract complete blood count analytes",
-      "type": "ocr",
-      "input": "document_content",
-      "output": "lab",
-      "success_criteria": [
+        "Field address must be null in extracted result — absent in source document",
         "Hemoglobin value '142 г/л' preserved in extracted result",
         "Analysis date '12.03.2024' preserved in extracted result",
         "24 analytes present in source — all 24 must appear in extracted result",
