@@ -3,19 +3,19 @@ version: "1.0"
 models:
   planner:
     # Быстрая логическая модель для классификации
-    primary: "qwen3.5:cloud" 
-    fallback: "ministral-3:8b-cloud"
+    primary: "ministral-3:8b-cloud"
+    fallback: "gpt-oss:20b-cloud"
 
   ocr_executor:
     # Специализированная модель для работы с текстом и кодом
-    primary: "ministral-3:8b-cloud"
+    primary: "gpt-oss:20b-cloud"
     fallback: "ministral-3:8b-cloud"
 
   critic:
     # Компактная, но строгая модель для проверки
-    primary: "gpt-oss:20b-cloud"
-    fallback: "qwen3.5:cloud"
+    primary: "gemma4:31b-cloud"
+    fallback: "gemma4:31b-cloud"
 
   default:
     primary: "ministral-3:8b-cloud"
-    fallback: "qwen3.5:cloud" # Локальный fallback на случай сбоя сети
+    fallback: "gemma4:31b-cloud" # Локальный fallback на случай сбоя сети

@@ -27,10 +27,12 @@ class Orchestrator:
         planner: Planner,
         executor: OcrExecutor,
         critic: Critic,
+        max_retries: int = 2,
     ):
         self._planner = planner
         self._executor = executor
         self._critic = critic
+        self._max_retries = max_retries
 
     async def run(self, file_path: str, doc_content: str = "") -> OcrResult:
         """Execute the full PEC pipeline and return the final OCR artifact.
@@ -50,18 +52,66 @@ class Orchestrator:
                 status=runCtx.status,
             )
         
-        # 1. Execute all steps via executor (no critic)
-        await self.execute(runCtx)
-        
-        # 2. Review all results via critic (mutates ctx in place)
-        await self.critic(runCtx)
-        
+        retry_count = 0
+        for attempt in range(self._max_retries + 1):
+            log.info(
+                "PEC attempt %d/%d started",
+                attempt + 1,
+                self._max_retries + 1,
+            )
+            if attempt > 0:
+                retry_count += 1
+                log.info(
+                    "Critic rejected, retry %d/%d",
+                    retry_count,
+                    self._max_retries,
+                )
+                # Reset extraction result so the next execute() starts clean.
+                # critic_feedback is intentionally kept from the previous round:
+                # the executor needs it to know exactly what to fix.
+                # summarize_previous_results() returns "" when doc is None,
+                # so no stale extraction leaks into the retry prompt.
+                runCtx.doc = None
+
+            await self.execute(runCtx)
+            await self.critic(runCtx)
+
+            if runCtx.status == RunStatus.COMPLETED:
+                log.info(
+                    "Critic approved on attempt %d/%d",
+                    attempt + 1,
+                    self._max_retries + 1,
+                )
+                break
+
+            issues = runCtx.critic_feedback
+            high = sum(1 for i in issues if i.severity == "high")
+            medium = sum(1 for i in issues if i.severity == "medium")
+            low = sum(1 for i in issues if i.severity == "low")
+            log.warning(
+                "Critic rejected on attempt %d/%d: %d issues (high=%d, medium=%d, low=%d)",
+                attempt + 1,
+                self._max_retries + 1,
+                len(issues),
+                high,
+                medium,
+                low,
+            )
+            for issue in issues:
+                log.debug("  [%s] %s", issue.severity, issue.description)
+        else:
+            log.error(
+                "PEC pipeline exhausted all %d attempts, status=%s",
+                self._max_retries + 1,
+                runCtx.status,
+            )
+
         return OcrResult(
             document_path=file_path,
             schema_name=runCtx.active_schema,
             context=runCtx.doc.model_dump_json() if runCtx.doc else "",
             step_results=runCtx.steps_results,
-            retry_count=0,
+            retry_count=retry_count,
             status=runCtx.status,
         )
 

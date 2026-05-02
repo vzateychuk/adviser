@@ -56,4 +56,5 @@ def build_pec(
         planner=planner,
         executor=executor,
         critic=critic,
+        max_retries=app_cfg.orchestrator.max_retries,
     )
