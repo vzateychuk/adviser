@@ -14,7 +14,7 @@ Five focused commands, each targeting one role in the pipeline:
 - `plan` — call the Planner and print goal + step titles
 - `exec` — execute all plan steps **only through the OCR Executor** (no critic validation)
 - `critic` — review all executed steps sequentially, stopping at the first failure
-- `ocr_flow` — full pipeline: `plan` → `exec` → `critic` in one continuous run
+- `ocr_flow` — full PEC pipeline: `plan` → `exec` → `critic` runs in a single continuous execution. **Important:** The final extraction result is returned in **YAML format** (instead of JSON) for improved readability and compliance with medical standards.
 
 ## Tests
 ```bash

@@ -14,7 +14,7 @@ models:
   critic:
     # Компактная, но строгая модель для проверки
     primary: "gemma4:31b-cloud"
-    fallback: "gemma4:31b-cloud"
+    fallback: "ministral-3:8b-cloud"
 
   default:
     primary: "ministral-3:8b-cloud"
