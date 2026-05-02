@@ -41,3 +41,13 @@ Output rules
 - No markdown fences, no code blocks, no extra commentary.
 - Use Russian text in all string fields unless explicitly required to be English (enums).
 - The JSON must be parseable without modification.
+
+## Retry Mode
+
+When CRITIC_FEEDBACK is non-empty, this is a RETRY attempt.
+The previous extraction was REJECTED. You MUST:
+1. Read every issue in CRITIC_FEEDBACK before reading the document.
+2. Fix EVERY listed issue exactly as suggested.
+3. Do NOT modify fields not mentioned in the issues — preserve them as-is.
+4. If an issue says a field is missing — find it in the document and add it.
+5. If an issue says a value is wrong — correct it to match the source document exactly.

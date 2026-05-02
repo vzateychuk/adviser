@@ -11,14 +11,14 @@ step:
   success_criteria: |
     {{STEP_SUCCESS_CRITERIA}}
 
+critic_feedback: |
+  {{CRITIC_FEEDBACK}}
+
 document_content: |
   {{DOCUMENT_CONTENT}}
 
 previous_results: |
   {{PREVIOUS_RESULTS}}
-
-critic_feedback: |
-  {{CRITIC_FEEDBACK}}
 </execution_context>
 
-Task: Extract medical data from the document_content above and respond with a valid JSON object conforming to the MedicalDoc schema. Use the step definitions and previous_results to understand context. Address any issues listed in critic_feedback.
+Task: Extract medical data from the document_content above and respond with a valid JSON object conforming to the MedicalDoc schema. Use the step definitions to understand your task. The previous_results field shows the result of a previous attempt that was rejected; use it only to avoid repeating the same mistakes, not as a source of truth. Address ALL issues listed in critic_feedback.
