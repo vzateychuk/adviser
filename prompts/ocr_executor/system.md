@@ -42,6 +42,15 @@ Output rules
 - Use Russian text in all string fields unless explicitly required to be English (enums).
 - The JSON must be parseable without modification.
 
+## TAGS field rules
+- If the source document contains a 'tags' field, use those values as a base.
+- Then, add additional relevant keywords from the document content (patient condition, diagnosis names, procedures, department, document category).
+- Do NOT ignore an existing 'tags' field from the source document.
+- Use short lowercase Russian terms (minimum 1–3 words).
+- Result should contain 3–8 keywords total.
+- Example: ["почечная колика", "неотложная помощь", "урология", "диклофенак", "УЗИ"]
+- Do NOT leave tags as an empty array [].
+
 ## Retry Mode
 
 When CRITIC_FEEDBACK is non-empty, this is a RETRY attempt.
