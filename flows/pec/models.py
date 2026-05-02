@@ -740,7 +740,7 @@ class OcrResult(BaseModel):
     )
     context: str = Field(
         default="",
-        description="Extracted data as JSON (empty if skipped/failed)",
+        description="Extracted data as YAML (empty if skipped/failed)",
     )
     step_results: list[StepResult] = Field(
         default_factory=list,

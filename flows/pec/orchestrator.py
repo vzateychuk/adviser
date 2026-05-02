@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import yaml
 from flows.pec.critic import Critic
 from flows.pec.models import OcrResult, PlanAction, RunContext, RunStatus
 from flows.pec.ocr_executor import OcrExecutor
@@ -27,7 +28,7 @@ class Orchestrator:
         planner: Planner,
         executor: OcrExecutor,
         critic: Critic,
-        max_retries: int = 2,
+        max_retries,
     ):
         self._planner = planner
         self._executor = executor
@@ -106,10 +107,15 @@ class Orchestrator:
                 runCtx.status,
             )
 
+        if runCtx.doc:
+            doc_dict = doc_dict = runCtx.doc.model_dump()
+            context = yaml.safe_dump(doc_dict, allow_unicode=True, sort_keys=False)
+        else:
+            context = ""
         return OcrResult(
             document_path=file_path,
             schema_name=runCtx.active_schema,
-            context=runCtx.doc.model_dump_json() if runCtx.doc else "",
+            context=context,
             step_results=runCtx.steps_results,
             retry_count=retry_count,
             status=runCtx.status,

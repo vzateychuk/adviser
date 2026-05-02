@@ -11,4 +11,4 @@ db:
 prompts_dir: "prompts"
 
 orchestrator:
-  max_retries: 3
+  max_retries: 2
